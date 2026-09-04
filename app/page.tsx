@@ -6,258 +6,468 @@ import {
   Users,
   CheckSquare,
   ArrowRightLeft,
-  Sparkles,
-  TrendingUp,
-  AlertTriangle,
-  ArrowRight,
-  ShieldCheck,
-  Building2,
-  PieChart,
   UserCheck,
+  ArrowRight,
+  ShieldAlert,
+  Sparkles,
+  AlertTriangle,
+  Target,
+  PhoneCall,
+  ListChecks,
 } from "lucide-react";
 
-import { executeGraphQL, QUERIES } from "@/lib/graphql-client";
-
-interface StatsData {
-  totalClientes: number;
-  completudeMedia: number;
-  investidores: number;
-  tarefasPendentes: number;
-  handoffsAtivos: number;
+interface DashboardData {
+  totalClientes?: number;
+  completudeMedia?: number;
+  investidores?: number;
+  tarefasPendentes?: number;
+  handoffsAtivos?: number;
+  oportunidadesAtivas?: number;
+  oportunidadesValor?: number;
+  investidoresPotenciais?: number;
+  alertas?: {
+    tarefasVencidas: number;
+    clientesSemContatoSemanal: number;
+    clientesIncompletos: number;
+    clientesDistrato: number;
+    oportunidadesVencidas: number;
+  };
+  pipeline?: {
+    oportunidadesAtivas: number;
+    pipelineValor: number;
+  };
+  composicaoStatus?: Record<string, number>;
 }
 
+const formatoMoeda = (v: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(v);
+
 export default function HomePage() {
-  const [stats, setStats] = useState<StatsData>({
-    totalClientes: 6,
-    completudeMedia: 83,
-    investidores: 2,
-    tarefasPendentes: 4,
-    handoffsAtivos: 1,
-  });
+  const [stats, setStats] = useState<DashboardData>({});
+  const [carregando, setCarregando] = useState(true);
 
   useEffect(() => {
-    executeGraphQL<{ dashboardStats: StatsData }>(QUERIES.GET_DASHBOARD_STATS)
+    fetch("/api/dashboard")
+      .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
-        if (data?.dashboardStats) setStats(data.dashboardStats);
+        if (data) setStats(data);
       })
-      .catch(() => {
-        // Fallback gracefully
-        fetch("/api/stats")
-          .then((r) => (r.ok ? r.json() : null))
-          .then((data) => {
-            if (data) setStats(data);
-          })
-          .catch(() => {});
-      });
+      .catch(() => {})
+      .finally(() => setCarregando(false));
   }, []);
 
-  const metricCards = [
+  const alertas = stats.alertas || {
+    tarefasVencidas: 0,
+    clientesSemContatoSemanal: 0,
+    clientesIncompletos: 0,
+    clientesDistrato: 0,
+    oportunidadesVencidas: 0,
+  };
+  const pipeline = stats.pipeline || { oportunidadesAtivas: 0, pipelineValor: 0 };
+  const temAlerta = alertas.tarefasVencidas + alertas.clientesSemContatoSemanal + alertas.clientesIncompletos + alertas.clientesDistrato + alertas.oportunidadesVencidas > 0;
+
+  const metricas = [
     {
-      titulo: "Base de Relacionamento",
-      valor: stats.totalClientes,
-      sufixo: "cadastros",
-      descricao: "Leads e clientes normalizados e unificados",
-      icon: Users,
+      label: "Clientes na base",
+      valor: String(stats.totalClientes ?? 0),
       href: "/clientes",
-      bgBadge: "bg-blue-50 text-blue-700",
+      icon: Users,
+      color: "var(--text-primary)",
     },
     {
-      titulo: "Índice Médio de Completude",
-      valor: `${stats.completudeMedia}%`,
-      sufixo: "qualificação",
-      descricao: "Média ponderada de integridade cadastral",
-      icon: UserCheck,
+      label: "Completude média",
+      valor: `${stats.completudeMedia ?? 0}%`,
       href: "/clientes?completude_maxima=70",
-      bgBadge: "bg-emerald-50 text-emerald-700",
+      icon: UserCheck,
+      color: "var(--success)",
     },
     {
-      titulo: "Investidores Mapeados",
-      valor: stats.investidores,
-      sufixo: "compradores",
-      descricao: "Classificados por perfil ou sinais comportamentais",
-      icon: TrendingUp,
-      href: "/clientes?finalidade=investimento",
-      bgBadge: "bg-amber-50 text-amber-700",
-    },
-    {
-      titulo: "Fila de Pós-Atendimento",
-      valor: stats.tarefasPendentes,
-      sufixo: "tarefas ativas",
-      descricao: "Ações de onboarding, qualificação e follow-up",
-      icon: CheckSquare,
+      label: "Tarefas pendentes",
+      valor: String(stats.tarefasPendentes ?? 0),
       href: "/tarefas",
-      bgBadge: "bg-purple-50 text-purple-700",
+      icon: CheckSquare,
+      color: "var(--accent)",
+    },
+    {
+      label: pipeline.oportunidadesAtivas > 0 ? "Oportunidades ativas" : "Oportunidades",
+      valor: String(pipeline.oportunidadesAtivas ?? stats.oportunidadesAtivas ?? 0),
+      href: "/oportunidades",
+      icon: Target,
+      color: "var(--warning)",
     },
   ];
 
-  const quickSections = [
+  const alertasList = [
     {
-      titulo: "Base de Clientes & Leads",
-      descricao: "Acesse o cadastro unificado com filtros por finalidade, confiança e status.",
+      icon: AlertTriangle,
+      label: "Tarefas vencidas",
+      desc: "Prazo já passou e a tarefa não foi concluída.",
+      count: alertas.tarefasVencidas,
+      href: "/tarefas",
+      tone: "danger",
+    },
+    {
+      icon: PhoneCall,
+      label: "Sem contato há 7+ dias",
+      desc: "Clientes sem interação recente precisam de follow-up.",
+      count: alertas.clientesSemContatoSemanal,
       href: "/clientes",
-      cta: "Consultar base de clientes",
+      tone: "warn",
+    },
+    {
+      icon: ListChecks,
+      label: "Cadastros incompletos",
+      desc: "Completude abaixo de 60% — faltam dados para priorizar.",
+      count: alertas.clientesIncompletos,
+      href: "/clientes?completude_maxima=60",
+      tone: "warn",
+    },
+    {
+      icon: ShieldAlert,
+      label: "Risco de distrato",
+      desc: "Cliente insatisfeito ou com alerta ativo — ação imediata.",
+      count: alertas.clientesDistrato,
+      href: "/clientes",
+      tone: "danger",
+    },
+    {
+      icon: Target,
+      label: "Oportunidades vencidas",
+      desc: "Próximo passo dentro do prazo sem avanço registrado.",
+      count: alertas.oportunidadesVencidas,
+      href: "/oportunidades",
+      tone: "warn",
+    },
+  ];
+
+  const composicao = stats.composicaoStatus || {};
+  const composicaoTotal = Object.values(composicao).reduce((a, b) => a + b, 0) || 1;
+
+  const quickLinks = [
+    {
+      icon: Users,
+      label: "Base de Clientes",
+      desc: "Cadastros, filtros por finalidade e status de pós-venda.",
+      href: "/clientes",
       tag: "Visão 360°",
     },
     {
-      titulo: "Auditoria de Dados Incompletos",
-      descricao: "Identifique leads com lacunas cadastrais (&le; 70%) para completar a qualificação.",
-      href: "/clientes?completude_maxima=70",
-      cta: "Ver cadastros a qualificar",
-      tag: "Qualificação Ativa",
+      icon: Target,
+      label: "Oportunidades",
+      desc: "Recompra, upgrade, investimento e indicações com pipeline.",
+      href: "/oportunidades",
+      tag: "Novo",
     },
     {
-      titulo: "Mapeamento de Investidores",
-      descricao: "Priorize oportunidades para clientes com perfil ou interesse em renda e valorização.",
-      href: "/clientes?finalidade=investimento",
-      cta: "Acessar carteira de investidores",
-      tag: "Alta Rentabilidade",
+      icon: CheckSquare,
+      label: "Fila de Tarefas",
+      desc: "Onboarding, qualificação, follow-up e pendências ativas.",
+      href: "/tarefas",
+      tag: "Operacional",
     },
     {
-      titulo: "Fluxo de Handoff (Vendas &rarr; Atendimento)",
-      descricao: "Acompanhe as passagens de bastão com checklists de pendências pós-fechamento.",
+      icon: ArrowRightLeft,
+      label: "Handoffs",
+      desc: "Passagens de bastão com checklists de pós-fechamento.",
       href: "/handoffs",
-      cta: "Acompanhar transições",
       tag: "Continuidade",
     },
   ];
 
   return (
-    <div className="space-y-12">
-      {/* Hero Header */}
-      <section className="relative overflow-hidden rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-8 md:p-12 shadow-xs">
-        <div className="max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#d9d2c6] bg-[#f5f1e9] px-3.5 py-1 text-xs font-semibold text-[#b25c3f] mb-4">
+    <div className="space-y-10">
+      {/* ── Hero ── */}
+      <section
+        className="rounded-2xl px-8 py-10 md:py-14"
+        style={{ background: "var(--white)", border: "1px solid var(--border)" }}
+      >
+        <div className="max-w-2xl">
+          <div
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold mb-5"
+            style={{ background: "var(--accent-light)", color: "var(--accent)" }}
+          >
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Sistema Unificado • Quadra Brasileira</span>
+            Painel de Pós-Atendimento Imobiliário
           </div>
 
-          <h1 className="text-4xl font-bold tracking-tight text-[#1e2722] sm:text-5xl leading-tight">
-            Pós-atendimento com contexto, prioridade e continuidade.
+          <h1
+            className="text-3xl md:text-4xl font-bold leading-tight tracking-tight"
+            style={{ color: "var(--text-primary)" }}
+          >
+            Operação com contexto, prioridade e continuidade.
           </h1>
 
-          <p className="mt-4 text-base sm:text-lg text-[#5b625d] leading-relaxed">
-            Centralize leads e clientes, diagnostique a finalidade de compra com inteligência,
-            calcule a completude cadastral e transforme cada interação em uma próxima ação assertiva.
+          <p className="mt-4 text-base leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+            Foco no que mais importa hoje: pendências vencidas, clientes carentes de contato e o pipeline de novas oportunidades.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-8 flex flex-wrap gap-3">
             <Link
               href="/clientes"
-              className="flex items-center gap-2 rounded-2xl bg-[#1e2722] px-6 py-3.5 text-sm font-semibold text-white shadow-sm hover:bg-[#b25c3f] transition"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors"
+              style={{ background: "var(--accent)" }}
             >
-              <span>Acessar Base de Clientes</span>
+              Acessar Base de Clientes
               <ArrowRight className="h-4 w-4" />
             </Link>
-
             <Link
-              href="/tarefas"
-              className="flex items-center gap-2 rounded-2xl border border-[#d9d2c6] bg-white px-6 py-3.5 text-sm font-semibold text-[#1e2722] hover:bg-[#f5f1e9] transition"
+              href="/oportunidades"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+              style={{
+                background: "var(--white)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border-strong)",
+              }}
             >
-              <CheckSquare className="h-4 w-4 text-[#b25c3f]" />
-              <span>Ver Fila de Pós-Atendimento</span>
+              <Target className="h-4 w-4" style={{ color: "var(--warning)" }} />
+              Ver Pipeline de Oportunidades
             </Link>
           </div>
         </div>
       </section>
 
-      {/* Metric Cards Row */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {metricCards.map((card, idx) => {
-          const Icon = card.icon;
+      {/* ── KPI Strip ── */}
+      <section
+        className="grid grid-cols-2 lg:grid-cols-4 divide-x divide-y lg:divide-y-0 rounded-2xl overflow-hidden"
+        style={{ background: "var(--white)", border: "1px solid var(--border)" }}
+      >
+        {metricas.map((m) => {
+          const Icon = m.icon;
           return (
             <Link
-              key={idx}
-              href={card.href}
-              className="group rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-xs transition hover:-translate-y-1 hover:shadow-lg hover:border-[#b25c3f]/50"
+              key={m.href + m.label}
+              href={m.href}
+              className="flex flex-col gap-1 px-6 py-6 group transition-colors hover:bg-[var(--surface)]"
             >
-              <div className="flex items-center justify-between">
-                <span className={`rounded-xl p-2.5 ${card.bgBadge}`}>
-                  <Icon className="h-5 w-5" />
-                </span>
-                <span className="text-xs text-[#8b918c] font-medium">{card.sufixo}</span>
+              <div className="flex items-center justify-between mb-2">
+                <Icon className="h-4 w-4" style={{ color: m.color }} />
               </div>
-
-              <div className="mt-4">
-                <span className="text-3xl font-extrabold tracking-tight text-[#1e2722]">
-                  {card.valor}
-                </span>
-                <h3 className="mt-1 text-sm font-semibold text-[#1e2722]">{card.titulo}</h3>
-                <p className="mt-1 text-xs text-[#68706a] leading-relaxed">{card.descricao}</p>
-              </div>
+              <span
+                className="text-3xl font-extrabold tracking-tight"
+                style={{ color: "var(--text-primary)" }}
+              >
+                {m.valor}
+              </span>
+              <span className="text-xs font-medium" style={{ color: "var(--text-secondary)" }}>
+                {m.label}
+              </span>
             </Link>
           );
         })}
       </section>
 
-      {/* Operational Quick Sections */}
-      <section>
-        <div className="mb-6 flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold tracking-tight text-[#1e2722]">
-              Visão Operacional e Módulos
-            </h2>
-            <p className="text-xs text-[#68706a]">
-              Acesso direto aos fluxos de atendimento, segmentação e governança de dados
+      {/* ── Pipeline de Oportunidades ── */}
+      <section
+        className="rounded-2xl p-6"
+        style={{ background: "var(--accent-light)", border: "1px solid var(--accent)" }}
+      >
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div
+              className="flex h-10 w-10 items-center justify-center rounded-xl text-white"
+              style={{ background: "var(--accent)" }}
+            >
+              <Target className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-bold" style={{ color: "var(--text-primary)" }}>
+                Pipeline de novas vendas
+              </p>
+              <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+                {pipeline.oportunidadesAtivas} oportunidade(s) em andamento
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p
+              className="text-2xl font-extrabold tracking-tight"
+              style={{ color: "var(--accent)" }}
+            >
+              {formatoMoeda(pipeline.pipelineValor)}
+            </p>
+            <p className="text-xs" style={{ color: "var(--text-secondary)" }}>
+              Valor estimado em jogo
             </p>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
-          {quickSections.map((sec, idx) => (
-            <Link
-              key={idx}
-              href={sec.href}
-              className="group flex flex-col justify-between rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-7 shadow-xs transition hover:-translate-y-1 hover:shadow-xl hover:border-[#b25c3f]"
-            >
-              <div>
-                <span className="inline-block rounded-full bg-[#f5f1e9] px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-[#b25c3f]">
-                  {sec.tag}
-                </span>
-                <h3 className="mt-3 text-xl font-bold text-[#1e2722] group-hover:text-[#b25c3f] transition-colors">
-                  {sec.titulo}
-                </h3>
-                <p className="mt-2 text-sm text-[#5b625d] leading-relaxed">{sec.descricao}</p>
-              </div>
-
-              <div className="mt-6 flex items-center gap-1.5 text-xs font-bold text-[#b25c3f] group-hover:translate-x-1 transition-transform">
-                <span>{sec.cta}</span>
-                <ArrowRight className="h-4 w-4" />
-              </div>
-            </Link>
-          ))}
         </div>
       </section>
 
-      {/* Logical Architecture Summary Card */}
-      <section className="rounded-3xl border border-[#d9d2c6] bg-[#f9f7f2] p-8 shadow-xs">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-[#b25c3f] mb-2">
-          Arquitetura Lógica de Segmentação & Pós-Atendimento
-        </h3>
-        <p className="text-xs text-[#5b625d] mb-6 leading-relaxed">
-          O motor opera em camadas integradas para garantir deduplicação, normalização e inteligência de relacionamento contínua:
-        </p>
+      {/* ── Alertas Acionáveis ── */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold" style={{ color: "var(--text-primary)" }}>
+            Preciso agir
+          </h2>
+          {!temAlerta && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+              style={{ background: "var(--accent-light)", color: "var(--success)" }}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Tudo em dia
+            </span>
+          )}
+        </div>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 text-xs">
-          <div className="rounded-2xl border border-[#d9d2c6] bg-white p-4">
-            <strong className="block text-sm text-[#1e2722] mb-1">1. Ingestão & Unificação</strong>
-            <p className="text-[#68706a]">
-              Captura de dados via CRM, formulários, WhatsApp e planilhas com deduplicação automática por CPF e E-mail.
+        {temAlerta ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {alertasList.map((a) => {
+              const Icon = a.icon;
+              const danger = a.tone === "danger";
+              return (
+                <Link
+                  key={a.label}
+                  href={a.href}
+                  className="group flex items-start gap-4 p-5 rounded-2xl transition-all"
+                  style={{
+                    background: "var(--white)",
+                    border: `1px solid ${danger ? "var(--danger)" : "var(--border)"}`,
+                  }}
+                >
+                  <div
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                    style={{
+                      background: danger ? "var(--danger-light)" : "var(--surface)",
+                      color: danger ? "var(--danger)" : "var(--text-secondary)",
+                    }}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-sm font-semibold" style={{ color: "var(--text-primary)" }}>
+                        {a.label}
+                      </span>
+                      <span
+                        className="text-base font-extrabold"
+                        style={{ color: danger ? "var(--danger)" : "var(--warning)" }}
+                      >
+                        {a.count}
+                      </span>
+                    </div>
+                    <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                      {a.desc}
+                    </p>
+                  </div>
+                  <ArrowRight
+                    className="h-4 w-4 shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    style={{ color: "var(--accent)" }}
+                  />
+                </Link>
+              );
+            })}
+          </div>
+        ) : (
+          <div
+            className="rounded-2xl p-6 text-center text-sm"
+            style={{ background: "var(--white)", border: "1px solid var(--border)" }}
+          >
+            <p style={{ color: "var(--text-secondary)" }}>
+              Nenhum alerta acionável no momento.
             </p>
           </div>
+        )}
+      </section>
 
-          <div className="rounded-2xl border border-[#d9d2c6] bg-white p-4">
-            <strong className="block text-sm text-[#1e2722] mb-1">2. Motor de Classificação</strong>
-            <p className="text-[#68706a]">
-              Inferência semântica de finalidade (investimento, moradia, 1º imóvel), cálculo de completude (%) e sinais comportamentais.
-            </p>
+      {/* ── Composição por status ── */}
+      {Object.keys(composicao).length > 0 && (
+        <section>
+          <h2 className="text-lg font-bold mb-4" style={{ color: "var(--text-primary)" }}>
+            Base por status
+          </h2>
+          <div
+            className="rounded-2xl p-6"
+            style={{ background: "var(--white)", border: "1px solid var(--border)" }}
+          >
+            <div className="flex h-3 w-full overflow-hidden rounded-full">
+              {Object.entries(composicao).map(([status, count], i) => {
+                const colors = ["#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6", "#e05b3f", "#64748b", "#3b82f6"];
+                return (
+                  <div
+                    key={status}
+                    title={`${status}: ${count}`}
+                    style={{
+                      width: `${(count / composicaoTotal) * 100}%`,
+                      background: colors[i % colors.length],
+                    }}
+                  />
+                );
+              })}
+            </div>
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2">
+              {Object.entries(composicao).map(([status, count], i) => {
+                const colors = ["#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6", "#e05b3f", "#64748b", "#3b82f6"];
+                return (
+                  <div key={status} className="flex items-center gap-2 text-xs">
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: colors[i % colors.length] }}
+                    />
+                    <span style={{ color: "var(--text-secondary)" }}>
+                      {status.replace(/_/g, " ")}
+                    </span>
+                    <span className="font-bold" style={{ color: "var(--text-primary)" }}>
+                      {count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
+        </section>
+      )}
 
-          <div className="rounded-2xl border border-[#d9d2c6] bg-white p-4">
-            <strong className="block text-sm text-[#1e2722] mb-1">3. Ação & Handoff</strong>
-            <p className="text-[#68706a]">
-              Disparo automático de tarefas para qualificar campos faltantes e transição assistida entre vendas e pós-venda.
-            </p>
-          </div>
+      {/* ── Quick Access ── */}
+      <section>
+        <h2 className="text-lg font-bold mb-4" style={{ color: "var(--text-primary)" }}>
+          Acesso Rápido
+        </h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {quickLinks.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href + item.label}
+                href={item.href}
+                className="group flex items-start gap-4 p-5 rounded-2xl transition-all"
+                style={{
+                  background: "var(--white)",
+                  border: "1px solid var(--border)",
+                }}
+              >
+                <div
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
+                  style={{ background: "var(--surface)", color: "var(--text-secondary)" }}
+                >
+                  <Icon className="h-5 w-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span
+                      className="text-xs font-bold uppercase tracking-wider"
+                      style={{ color: "var(--text-muted)" }}
+                    >
+                      {item.tag}
+                    </span>
+                  </div>
+                  <h3
+                    className="text-sm font-semibold leading-snug"
+                    style={{ color: "var(--text-primary)" }}
+                  >
+                    {item.label}
+                  </h3>
+                  <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
+                    {item.desc}
+                  </p>
+                </div>
+                <ArrowRight
+                  className="h-4 w-4 shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                  style={{ color: "var(--accent)" }}
+                />
+              </Link>
+            );
+          })}
         </div>
       </section>
     </div>

@@ -10,6 +10,7 @@ import {
   Interacao,
   Tarefa,
   Handoff,
+  Oportunidade,
   DashboardStats,
   FiltrosCliente,
 } from "../../domain/entities/types";
@@ -57,4 +58,13 @@ export interface IHandoffRepository {
   findById(id: string): Promise<Handoff | null>;
   create(data: Partial<Handoff>): Promise<Handoff>;
   update(id: string, data: Partial<Handoff>): Promise<Handoff | null>;
+}
+
+// --- Oportunidade Repository ---
+
+export interface IOportunidadeRepository {
+  findAll(): Promise<Oportunidade[]>;
+  findById(id: string): Promise<Oportunidade | null>;
+  create(data: Partial<Oportunidade>): Promise<Oportunidade>;
+  update(id: string, data: Partial<Oportunidade>): Promise<Oportunidade | null>;
 }

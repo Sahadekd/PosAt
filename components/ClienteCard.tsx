@@ -3,21 +3,19 @@
 import Link from "next/link";
 import { useState } from "react";
 import {
-  User,
-  Phone,
-  Mail,
-  MapPin,
-  TrendingUp,
-  AlertCircle,
-  Clock,
+  Building2,
   ArrowRight,
   MessageSquarePlus,
   CheckSquare,
+  TrendingUp,
   Sparkles,
-  ShieldCheck,
-  Building,
 } from "lucide-react";
-import { ClienteCompleto, FinalidadeCliente, NivelConfianca, StatusRelacionamento } from "@/lib/segmentacao/tipos";
+import {
+  ClienteCompleto,
+  FinalidadeCliente,
+  NivelConfianca,
+  StatusRelacionamento,
+} from "@/lib/segmentacao/tipos";
 import NovaInteracaoModal from "./NovaInteracaoModal";
 import NovaTarefaModal from "./NovaTarefaModal";
 import HandoffModal from "./HandoffModal";
@@ -27,263 +25,248 @@ interface ClienteCardProps {
   onAtualizado?: () => void;
 }
 
+// ─── Config maps (exported for use in Filters/Board) ───
+
 export const finalidadeConfig: Record<
   FinalidadeCliente,
   { label: string; bg: string; text: string; border: string }
 > = {
-  primeiro_imovel: {
-    label: "Primeiro Imóvel",
-    bg: "bg-blue-50",
-    text: "text-blue-700",
-    border: "border-blue-200",
-  },
-  moradia: {
-    label: "Moradia",
-    bg: "bg-emerald-50",
-    text: "text-emerald-700",
-    border: "border-emerald-200",
-  },
-  investimento: {
-    label: "Investidor Confirmado",
-    bg: "bg-amber-50",
-    text: "text-amber-800",
-    border: "border-amber-200",
-  },
-  possivel_investidor: {
-    label: "Possível Investidor",
-    bg: "bg-amber-50/70",
-    text: "text-amber-700",
-    border: "border-amber-200",
-  },
-  upgrade: {
-    label: "Upgrade Residencial",
-    bg: "bg-purple-50",
-    text: "text-purple-700",
-    border: "border-purple-200",
-  },
-  segunda_residencia: {
-    label: "Segunda Residência",
-    bg: "bg-teal-50",
-    text: "text-teal-700",
-    border: "border-teal-200",
-  },
-  compra_para_familiar: {
-    label: "Compra Familiar",
-    bg: "bg-indigo-50",
-    text: "text-indigo-700",
-    border: "border-indigo-200",
-  },
-  locacao: {
-    label: "Locação",
-    bg: "bg-stone-100",
-    text: "text-stone-700",
-    border: "border-stone-200",
-  },
-  imovel_comercial: {
-    label: "Comercial / Lajes",
-    bg: "bg-orange-50",
-    text: "text-orange-700",
-    border: "border-orange-200",
-  },
-  cliente_recorrente: {
-    label: "Cliente Recorrente",
-    bg: "bg-emerald-100",
-    text: "text-emerald-800",
-    border: "border-emerald-300",
-  },
-  potencial_indicacao: {
-    label: "Potencial Indicação",
-    bg: "bg-rose-50",
-    text: "text-rose-700",
-    border: "border-rose-200",
-  },
-  nao_identificado: {
-    label: "Sem Perfil Definido",
-    bg: "bg-stone-100",
-    text: "text-stone-600",
-    border: "border-stone-200",
-  },
+  primeiro_imovel:    { label: "Primeiro Imóvel",      bg: "bg-blue-50 dark:bg-blue-500/15",    text: "text-blue-700 dark:text-blue-300",    border: "border-blue-100 dark:border-blue-500/30" },
+  moradia:            { label: "Moradia",               bg: "bg-emerald-50 dark:bg-emerald-500/15", text: "text-emerald-700 dark:text-emerald-300", border: "border-emerald-100 dark:border-emerald-500/30" },
+  investimento:       { label: "Investidor",            bg: "bg-amber-50 dark:bg-amber-500/15",   text: "text-amber-700 dark:text-amber-300",   border: "border-amber-100 dark:border-amber-500/30" },
+  possivel_investidor:{ label: "Possível Invest.",      bg: "bg-amber-50 dark:bg-amber-500/15",   text: "text-amber-600 dark:text-amber-300",   border: "border-amber-100 dark:border-amber-500/30" },
+  upgrade:            { label: "Upgrade",               bg: "bg-purple-50 dark:bg-purple-500/15",  text: "text-purple-700 dark:text-purple-300",  border: "border-purple-100 dark:border-purple-500/30" },
+  segunda_residencia: { label: "2ª Residência",         bg: "bg-teal-50 dark:bg-teal-500/15",    text: "text-teal-700 dark:text-teal-300",    border: "border-teal-100 dark:border-teal-500/30" },
+  compra_para_familiar:{ label: "Compra Familiar",      bg: "bg-indigo-50 dark:bg-indigo-500/15",  text: "text-indigo-700 dark:text-indigo-300",  border: "border-indigo-100 dark:border-indigo-500/30" },
+  locacao:            { label: "Locação",               bg: "bg-stone-100 dark:bg-zinc-700/60",  text: "text-stone-600 dark:text-zinc-300",   border: "border-stone-200 dark:border-zinc-600" },
+  imovel_comercial:   { label: "Comercial",             bg: "bg-orange-50 dark:bg-orange-500/15",  text: "text-orange-700 dark:text-orange-300",  border: "border-orange-100 dark:border-orange-500/30" },
+  cliente_recorrente: { label: "Recorrente",            bg: "bg-emerald-100 dark:bg-emerald-500/20",text: "text-emerald-800 dark:text-emerald-200", border: "border-emerald-200 dark:border-emerald-500/30" },
+  potencial_indicacao:{ label: "Indicação",             bg: "bg-rose-50 dark:bg-rose-500/15",    text: "text-rose-700 dark:text-rose-300",    border: "border-rose-100 dark:border-rose-500/30" },
+  nao_identificado:   { label: "Sem perfil",            bg: "bg-stone-100 dark:bg-zinc-700/60",  text: "text-stone-500 dark:text-zinc-400",   border: "border-stone-200 dark:border-zinc-600" },
 };
 
 export const statusConfig: Record<
   StatusRelacionamento,
   { label: string; bg: string; text: string }
 > = {
-  novo_lead: { label: "Novo Lead", bg: "bg-blue-100", text: "text-blue-800" },
-  em_qualificacao: { label: "Em Qualificação", bg: "bg-amber-100", text: "text-amber-800" },
-  em_negociacao: { label: "Em Negociação", bg: "bg-indigo-100", text: "text-indigo-800" },
-  convertido: { label: "Convertido (Vendido)", bg: "bg-emerald-100", text: "text-emerald-800" },
-  handoff_pendente: { label: "Handoff Pendente", bg: "bg-rose-100", text: "text-rose-800" },
-  onboarding: { label: "Onboarding", bg: "bg-purple-100", text: "text-purple-800" },
-  pos_venda: { label: "Pós-Venda Ativo", bg: "bg-teal-100", text: "text-teal-800" },
-  cliente_ativo: { label: "Cliente Ativo", bg: "bg-emerald-100", text: "text-emerald-800" },
-  cliente_inativo: { label: "Inativo", bg: "bg-stone-200", text: "text-stone-700" },
-  reativacao: { label: "Reativação", bg: "bg-yellow-100", text: "text-yellow-800" },
-  sem_resposta: { label: "Sem Resposta", bg: "bg-stone-200", text: "text-stone-600" },
-  encerrado: { label: "Encerrado", bg: "bg-stone-300", text: "text-stone-700" },
+  novo_lead:        { label: "Novo Lead",          bg: "bg-blue-50 dark:bg-blue-500/15",    text: "text-blue-700 dark:text-blue-300" },
+  em_qualificacao:  { label: "Em Qualificação",    bg: "bg-amber-50 dark:bg-amber-500/15",   text: "text-amber-700 dark:text-amber-300" },
+  em_negociacao:    { label: "Em Negociação",      bg: "bg-indigo-50 dark:bg-indigo-500/15",  text: "text-indigo-700 dark:text-indigo-300" },
+  convertido:       { label: "Convertido",         bg: "bg-emerald-50 dark:bg-emerald-500/15", text: "text-emerald-700 dark:text-emerald-300" },
+  handoff_pendente: { label: "Handoff Pendente",   bg: "bg-rose-50 dark:bg-rose-500/15",    text: "text-rose-700 dark:text-rose-300" },
+  onboarding:       { label: "Onboarding",         bg: "bg-purple-50 dark:bg-purple-500/15",  text: "text-purple-700 dark:text-purple-300" },
+  pos_venda:        { label: "Pós-Venda",          bg: "bg-teal-50 dark:bg-teal-500/15",    text: "text-teal-700 dark:text-teal-300" },
+  cliente_ativo:    { label: "Ativo",              bg: "bg-emerald-50 dark:bg-emerald-500/15", text: "text-emerald-700 dark:text-emerald-300" },
+  cliente_inativo:  { label: "Inativo",            bg: "bg-stone-100 dark:bg-zinc-700/60",  text: "text-stone-500 dark:text-zinc-400" },
+  reativacao:       { label: "Reativação",         bg: "bg-yellow-50 dark:bg-yellow-500/15",  text: "text-yellow-700 dark:text-yellow-300" },
+  sem_resposta:     { label: "Sem Resposta",       bg: "bg-stone-100 dark:bg-zinc-700/60",  text: "text-stone-500 dark:text-zinc-400" },
+  encerrado:        { label: "Encerrado",          bg: "bg-stone-200 dark:bg-zinc-700",     text: "text-stone-600 dark:text-zinc-300" },
 };
 
 export const confiancaConfig: Record<
   NivelConfianca,
   { label: string; bg: string; text: string }
 > = {
-  alta: { label: "Confiança Alta", bg: "bg-emerald-50 text-emerald-700 border-emerald-200", text: "text-emerald-700" },
-  media: { label: "Confiança Média", bg: "bg-amber-50 text-amber-700 border-amber-200", text: "text-amber-700" },
-  baixa: { label: "Confiança Baixa", bg: "bg-stone-100 text-stone-600 border-stone-200", text: "text-stone-600" },
-  revisao_necessaria: { label: "Revisão Necessária", bg: "bg-rose-50 text-rose-700 border-rose-200", text: "text-rose-700" },
+  alta:              { label: "Alta",             bg: "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-500/15 dark:text-emerald-300 dark:border-emerald-500/30", text: "text-emerald-700 dark:text-emerald-300" },
+  media:             { label: "Média",            bg: "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:border-amber-500/30",       text: "text-amber-700 dark:text-amber-300" },
+  baixa:             { label: "Baixa",            bg: "bg-stone-100 text-stone-600 border-stone-200 dark:bg-zinc-700/60 dark:text-zinc-300 dark:border-zinc-600",      text: "text-stone-600 dark:text-zinc-300" },
+  revisao_necessaria:{ label: "Revisão",          bg: "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-500/15 dark:text-rose-300 dark:border-rose-500/30",          text: "text-rose-700 dark:text-rose-300" },
 };
 
+export const termometroCXConfig: Record<
+  string,
+  { label: string; dot: string; bg: string; text: string; border: string }
+> = {
+  promotor_mgm:        { label: "Promotor / MGM",   dot: "bg-emerald-500", bg: "bg-emerald-50 dark:bg-emerald-500/15", text: "text-emerald-800 dark:text-emerald-200", border: "border-emerald-200 dark:border-emerald-500/30" },
+  neutro_nutricao:     { label: "Neutro",            dot: "bg-amber-400",   bg: "bg-amber-50 dark:bg-amber-500/15",   text: "text-amber-800 dark:text-amber-200",   border: "border-amber-200 dark:border-amber-500/30" },
+  insatisfeito_distrato: { label: "Risco de Distrato", dot: "bg-rose-500",  bg: "bg-rose-50 dark:bg-rose-500/15",    text: "text-rose-800 dark:text-rose-200",    border: "border-rose-200 dark:border-rose-500/30" },
+};
+
+// ─── Avatar helper ───
+function initials(name: string) {
+  return name
+    .split(" ")
+    .slice(0, 2)
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase();
+}
+
+function avatarColor(name: string): string {
+  const colors = [
+    "#e05b3f","#00a699","#d97706","#6366f1","#0ea5e9","#84cc16","#ec4899"
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
+}
+
+// ─── Component ───
 export default function ClienteCard({ cliente, onAtualizado }: ClienteCardProps) {
   const [modalInteracaoAberto, setModalInteracaoAberto] = useState(false);
   const [modalTarefaAberto, setModalTarefaAberto] = useState(false);
   const [modalHandoffAberto, setModalHandoffAberto] = useState(false);
 
-  const finalidade = finalidadeConfig[cliente.finalidade_principal] || finalidadeConfig.nao_identificado;
-  const status = statusConfig[cliente.status] || { label: cliente.status, bg: "bg-stone-100", text: "text-stone-700" };
-  const confianca = confiancaConfig[cliente.nivel_confianca] || confiancaConfig.baixa;
-
-  const completudeNum = Number(cliente.indice_completude || 0);
-
-  let completudeBarColor = "bg-rose-500";
-  if (completudeNum >= 80) completudeBarColor = "bg-emerald-600";
-  else if (completudeNum >= 50) completudeBarColor = "bg-amber-500";
-
   const nome = cliente.pessoa?.nome || "Lead Sem Nome";
   const telefone = cliente.pessoa?.telefone;
-  const email = cliente.pessoa?.email;
+  const status = statusConfig[cliente.status] ?? { label: cliente.status, bg: "bg-stone-100", text: "text-stone-600" };
+  const cx = cliente.termometro_cx ? termometroCXConfig[cliente.termometro_cx] : null;
+  const finalidade = finalidadeConfig[cliente.finalidade_principal] ?? finalidadeConfig.nao_identificado;
 
-  const valorFormatado = cliente.valor_maximo
-    ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(cliente.valor_maximo)
-    : null;
+  const empreendimento =
+    cliente.empreendimento ||
+    (cliente.pessoa?.dados_originais?.empreendimento as string) ||
+    (cliente.regiao_interesse ? `Condomínio ${cliente.regiao_interesse}` : null);
+
+  const isDistrato = cliente.termometro_cx === "insatisfeito_distrato" || cliente.alerta_distrato_ativo;
 
   return (
     <>
-      <article className="group relative flex flex-col justify-between rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:shadow-xl hover:border-[#b25c3f]/50">
-        <div>
-          {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-[#ede6d8] pb-4">
-            <div className="flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${status.bg} ${status.text}`}>
-                  {status.label}
-                </span>
-                <span className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${finalidade.bg} ${finalidade.text} ${finalidade.border}`}>
-                  <Sparkles className="h-3 w-3" />
-                  {finalidade.label}
-                </span>
-              </div>
+      <article
+        className="group flex flex-col rounded-2xl transition-all duration-200 overflow-hidden"
+        style={{
+          background: "var(--white)",
+          border: isDistrato ? "1px solid #fca5a5" : "1px solid var(--border)",
+          boxShadow: "var(--shadow-xs)",
+        }}
+        onMouseEnter={(e) => {
+          (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-md)";
+          (e.currentTarget as HTMLElement).style.transform = "translateY(-2px)";
+        }}
+        onMouseLeave={(e) => {
+          (e.currentTarget as HTMLElement).style.boxShadow = "var(--shadow-xs)";
+          (e.currentTarget as HTMLElement).style.transform = "translateY(0)";
+        }}
+      >
+        {/* Distrato alert stripe */}
+        {isDistrato && (
+          <div className="h-1 w-full" style={{ background: "var(--danger)" }} />
+        )}
 
-              <h2 className="mt-2.5 text-xl font-bold text-[#1e2722] group-hover:text-[#b25c3f] transition-colors">
-                <Link href={`/clientes/${cliente.id}`}>{nome}</Link>
+        <div className="flex flex-col flex-1 p-5">
+          {/* Top row: avatar + name + badges */}
+          <div className="flex items-start gap-3">
+            {/* Avatar */}
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white"
+              style={{ background: avatarColor(nome) }}
+            >
+              {initials(nome)}
+            </div>
+
+            {/* Name + Empreendimento */}
+            <div className="flex-1 min-w-0">
+              <h2 className="text-[15px] font-semibold leading-tight truncate" style={{ color: "var(--text-primary)" }}>
+                <Link
+                  href={`/clientes/${cliente.id}`}
+                  className="hover:underline"
+                  style={{ color: "inherit" }}
+                >
+                  {nome}
+                </Link>
               </h2>
-
-              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#68706a]">
-                {telefone && (
-                  <span className="flex items-center gap-1">
-                    <Phone className="h-3.5 w-3.5 text-[#b25c3f]" />
-                    {telefone}
-                  </span>
-                )}
-                {email && (
-                  <span className="flex items-center gap-1">
-                    <Mail className="h-3.5 w-3.5 text-[#b25c3f]" />
-                    {email}
-                  </span>
-                )}
-                {(cliente.bairro_interesse || cliente.cidade_interesse || cliente.regiao_interesse) && (
-                  <span className="flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5 text-[#b25c3f]" />
-                    {[cliente.bairro_interesse, cliente.cidade_interesse || cliente.regiao_interesse].filter(Boolean).join(" - ")}
-                  </span>
-                )}
-              </div>
+              {empreendimento && (
+                <p className="flex items-center gap-1 text-xs mt-0.5 truncate" style={{ color: "var(--accent)" }}>
+                  <Building2 className="h-3 w-3 shrink-0" />
+                  <span className="truncate font-medium">{empreendimento}{cliente.unidade ? ` · ${cliente.unidade}` : ""}</span>
+                </p>
+              )}
             </div>
 
-            <div className="text-right">
-              <span className={`inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold ${confianca.bg}`}>
-                <ShieldCheck className="h-3 w-3" />
-                {confianca.label}
+            {/* Status badge */}
+            <span
+              className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${status.bg} ${status.text}`}
+            >
+              {status.label}
+            </span>
+          </div>
+
+          {/* CX pill + Finalidade */}
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {cx && (
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-semibold border ${cx.bg} ${cx.text} ${cx.border}`}
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${cx.dot}`} />
+                {cx.label}
               </span>
-            </div>
+            )}
+            <span
+              className={`rounded-full px-2.5 py-0.5 text-[11px] font-medium border ${finalidade.bg} ${finalidade.text} ${finalidade.border}`}
+            >
+              {finalidade.label}
+            </span>
+            {cliente.oportunidade_upsell && (
+              <span className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-100 dark:bg-purple-500/15 dark:text-purple-300 dark:border-purple-500/30">
+                Up-Sell ✦
+              </span>
+            )}
           </div>
 
-          {/* Indicators: Completude & Budget */}
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-2xl bg-[#f5f1e9] p-3">
-              <div className="flex items-center justify-between text-xs text-[#68706a]">
-                <span>Completude</span>
-                <span className="font-bold text-[#1e2722]">{completudeNum}%</span>
-              </div>
-              <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[#e3dccf]">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${completudeBarColor}`}
-                  style={{ width: `${completudeNum}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="rounded-2xl bg-[#f5f1e9] p-3 text-xs">
-              <span className="text-[#68706a]">Interesse / Faixa</span>
-              <p className="mt-0.5 truncate font-semibold text-[#1e2722]">
-                {valorFormatado ? `Até ${valorFormatado}` : cliente.tipo_imovel || "Não especificado"}
-              </p>
-            </div>
-          </div>
-
-          {/* Missing Fields Alert */}
-          {cliente.campos_faltantes && cliente.campos_faltantes.length > 0 && (
-            <div className="mt-3.5 rounded-2xl border border-[#eed4c8] bg-[#fff5f0] p-3">
-              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#a34426]">
-                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
-                <span>Dados necessários para qualificação</span>
-              </div>
-              <div className="mt-1.5 flex flex-wrap gap-1">
-                {cliente.campos_faltantes.map((campo) => (
-                  <span
-                    key={campo}
-                    className="rounded-md bg-[#ffe8df] px-1.5 py-0.5 text-[10px] font-medium text-[#8c351b]"
-                  >
-                    {campo.replace(/_/g, " ")}
-                  </span>
-                ))}
-              </div>
+          {/* Meta: Corretor + Telefone */}
+          {(cliente.corretor_original_nome || telefone) && (
+            <div
+              className="mt-3 flex items-center gap-4 text-xs"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {cliente.corretor_original_nome && (
+                <span>Corretor: <strong style={{ color: "var(--text-primary)" }}>{cliente.corretor_original_nome}</strong></span>
+              )}
+              {telefone && (
+                <span className="truncate">{telefone}</span>
+              )}
             </div>
           )}
 
-          {/* Recommended Next Action */}
+          {/* Próxima ação (se houver) — very compact */}
           {cliente.proxima_acao && (
-            <div className="mt-3.5 rounded-2xl border border-[#d9d2c6] bg-[#f9f7f2] p-3 text-xs">
-              <span className="font-semibold text-[#1e2722]">Próxima Ação Sugerida:</span>
-              <p className="mt-1 text-[#5b625d] leading-relaxed">{cliente.proxima_acao}</p>
-            </div>
+            <p
+              className="mt-3 text-xs leading-relaxed line-clamp-2 pl-2"
+              style={{
+                color: "var(--text-secondary)",
+                borderLeft: "2px solid var(--border-strong)",
+              }}
+            >
+              {cliente.proxima_acao}
+            </p>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-[#ede6d8] pt-4">
-          <div className="flex items-center gap-1.5">
+        {/* Footer: actions */}
+        <div
+          className="flex items-center justify-between px-5 py-3"
+          style={{ borderTop: "1px solid var(--border)", background: "var(--surface)" }}
+        >
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setModalInteracaoAberto(true)}
               title="Registrar Interação"
-              className="flex items-center gap-1 rounded-xl border border-[#d9d2c6] bg-white px-2.5 py-1.5 text-xs font-medium text-[#1e2722] hover:bg-[#f5f1e9] transition shadow-xs"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <MessageSquarePlus className="h-3.5 w-3.5 text-[#b25c3f]" />
+              <MessageSquarePlus className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Interação</span>
             </button>
-
             <button
               onClick={() => setModalTarefaAberto(true)}
-              title="Criar Tarefa de Pós-Atendimento"
-              className="flex items-center gap-1 rounded-xl border border-[#d9d2c6] bg-white px-2.5 py-1.5 text-xs font-medium text-[#1e2722] hover:bg-[#f5f1e9] transition shadow-xs"
+              title="Criar Tarefa"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
-              <CheckSquare className="h-3.5 w-3.5 text-[#1e2722]" />
+              <CheckSquare className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Tarefa</span>
             </button>
-
             <button
               onClick={() => setModalHandoffAberto(true)}
-              title="Passagem de Bastão (Handoff)"
-              className="flex items-center gap-1 rounded-xl border border-[#b25c3f]/30 bg-[#fff5f0] px-2.5 py-1.5 text-xs font-medium text-[#b25c3f] hover:bg-[#ffe8df] transition shadow-xs"
+              title="Passagem de Bastão"
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors"
+              style={{ color: "var(--text-secondary)" }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
+              onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >
               <TrendingUp className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Handoff</span>
@@ -292,9 +275,12 @@ export default function ClienteCard({ cliente, onAtualizado }: ClienteCardProps)
 
           <Link
             href={`/clientes/${cliente.id}`}
-            className="inline-flex items-center gap-1 rounded-xl bg-[#1e2722] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-[#b25c3f]"
+            className="flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            style={{ color: "var(--accent)" }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "var(--accent-light)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
           >
-            <span>Ver Perfil 360°</span>
+            Ver perfil
             <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
@@ -305,32 +291,21 @@ export default function ClienteCard({ cliente, onAtualizado }: ClienteCardProps)
         clienteId={cliente.id}
         nomeCliente={nome}
         aoFechar={() => setModalInteracaoAberto(false)}
-        aoSalvar={() => {
-          setModalInteracaoAberto(false);
-          onAtualizado?.();
-        }}
+        aoSalvar={() => { setModalInteracaoAberto(false); onAtualizado?.(); }}
       />
-
       <NovaTarefaModal
         aberto={modalTarefaAberto}
         clienteId={cliente.id}
         nomeCliente={nome}
         aoFechar={() => setModalTarefaAberto(false)}
-        aoSalvar={() => {
-          setModalTarefaAberto(false);
-          onAtualizado?.();
-        }}
+        aoSalvar={() => { setModalTarefaAberto(false); onAtualizado?.(); }}
       />
-
       <HandoffModal
         aberto={modalHandoffAberto}
         clienteId={cliente.id}
         nomeCliente={nome}
         aoFechar={() => setModalHandoffAberto(false)}
-        aoSalvar={() => {
-          setModalHandoffAberto(false);
-          onAtualizado?.();
-        }}
+        aoSalvar={() => { setModalHandoffAberto(false); onAtualizado?.(); }}
       />
     </>
   );

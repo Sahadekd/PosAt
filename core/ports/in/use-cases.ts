@@ -10,6 +10,7 @@ import {
   Interacao,
   Tarefa,
   Handoff,
+  Oportunidade,
   DashboardStats,
   FiltrosCliente,
   ResultadoClassificacao,
@@ -31,6 +32,10 @@ export interface IListarTarefasUseCase {
 
 export interface IListarHandoffsUseCase {
   execute(): Promise<Handoff[]>;
+}
+
+export interface IListarOportunidadesUseCase {
+  execute(): Promise<Oportunidade[]>;
 }
 
 export interface IObterStatsUseCase {
@@ -110,6 +115,23 @@ export interface ICriarHandoffUseCase {
   execute(input: ICriarHandoffInput): Promise<Handoff>;
 }
 
+export interface ICriarOportunidadeInput {
+  clienteId: string;
+  tipo: string;
+  descricao: string;
+  valorEstimado?: number | null;
+  prioridade?: number | null;
+  evidencia?: string | null;
+  criadoPor?: string | null;
+  responsavelId?: string | null;
+  prazoEm?: string | null;
+  proximoPasso?: string | null;
+}
+
+export interface ICriarOportunidadeUseCase {
+  execute(input: ICriarOportunidadeInput): Promise<Oportunidade>;
+}
+
 // --- Atualização ---
 
 export interface IAtualizarTarefaInput {
@@ -136,6 +158,23 @@ export interface IAtualizarHandoffInput {
 
 export interface IAtualizarHandoffUseCase {
   execute(input: IAtualizarHandoffInput): Promise<Handoff | null>;
+}
+
+export interface IAtualizarOportunidadeInput {
+  id: string;
+  status?: string | null;
+  descricao?: string | null;
+  valorEstimado?: number | null;
+  prioridade?: number | null;
+  evidencia?: string | null;
+  responsavelId?: string | null;
+  prazoEm?: string | null;
+  proximoPasso?: string | null;
+  motivoPerda?: string | null;
+}
+
+export interface IAtualizarOportunidadeUseCase {
+  execute(input: IAtualizarOportunidadeInput): Promise<Oportunidade | null>;
 }
 
 // --- Classificação ---

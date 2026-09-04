@@ -4,6 +4,7 @@ import {
   InteracaoItem,
   TarefaItem,
   HandoffItem,
+  OportunidadeItem,
 } from "./segmentacao/tipos";
 
 // Initial seed data with high context Brazilian real estate examples
@@ -394,6 +395,66 @@ const INITIAL_HANDOFFS: HandoffItem[] = [
   }
 ];
 
+const INITIAL_OPORTUNIDADES: OportunidadeItem[] = [
+  {
+    id: "op-001",
+    cliente_id: "c-003",
+    tipo: "investimento_novo",
+    descricao: "Reserva de 2 studios do próximo lançamento em Pinheiros.",
+    valor_estimado: 2400000,
+    status: "em_avaliacao",
+    prioridade: 1,
+    evidencia: "Check-in trimestral de pós-venda (int-003): cliente sinalizou interesse em reservar 2 studios no próximo lançamento em Pinheiros.",
+    criado_por: "Gestora Fernanda",
+    responsavel_id: null,
+    prazo_em: new Date(Date.now() + 15 * 86400000).toISOString(),
+    proximo_passo: "Enviar maquete e previsão de preços do Pinheiros Urban.",
+    ganha_em: null,
+    perdida_em: null,
+    motivo_perda: null,
+    criado_em: new Date(Date.now() - 3 * 86400000).toISOString(),
+    atualizado_em: new Date(Date.now() - 3 * 86400000).toISOString(),
+  },
+  {
+    id: "op-002",
+    cliente_id: "c-002",
+    tipo: "upgrade",
+    descricao: "Possível arremate de vaga de garagem extra ou unidade comercial na torre.",
+    valor_estimado: 900000,
+    status: "identificada",
+    prioridade: 2,
+    evidencia: "Conversão concluída (c-002) com família em expansão; pós-venda sinalizou possível ampliação de vaga/garagem.",
+    criado_por: "Gerente Patrícia",
+    responsavel_id: null,
+    prazo_em: new Date(Date.now() + 30 * 86400000).toISOString(),
+    proximo_passo: "Consultar disponibilidade de vaga extra na planta da torre.",
+    ganha_em: null,
+    perdida_em: null,
+    motivo_perda: null,
+    criado_em: new Date(Date.now() - 2 * 86400000).toISOString(),
+    atualizado_em: new Date(Date.now() - 2 * 86400000).toISOString(),
+  },
+  {
+    id: "op-003",
+    cliente_id: "c-001",
+    tipo: "investimento_novo",
+    descricao: "Carteira de 2 unidades no Vista Jardins para locação via Airbnb.",
+    valor_estimado: 1200000,
+    status: "proposta_enviada",
+    prioridade: 1,
+    evidencia: "interação int-001: cliente confirmou interesse em 2 unidades no Vista Jardins para locação via Airbnb.",
+    criado_por: "Consultor André",
+    responsavel_id: null,
+    prazo_em: new Date(Date.now() + 10 * 86400000).toISOString(),
+    proximo_passo: "Encaminhar simulação de fluxo com 30% no período de obras.",
+    ganha_em: null,
+    perdida_em: null,
+    motivo_perda: null,
+    criado_em: new Date(Date.now() - 1 * 86400000).toISOString(),
+    atualizado_em: new Date(Date.now() - 1 * 86400000).toISOString(),
+  },
+];
+
 // In-memory persistent state during process lifetime
 class StorageMemoryFallback {
   private pessoas: PessoaCompleta[] = [...INITIAL_PESSOAS];
@@ -401,6 +462,7 @@ class StorageMemoryFallback {
   private interacoes: InteracaoItem[] = [...INITIAL_INTERACOES];
   private tarefas: TarefaItem[] = [...INITIAL_TAREFAS];
   private handoffs: HandoffItem[] = [...INITIAL_HANDOFFS];
+  private oportunidades: OportunidadeItem[] = [...INITIAL_OPORTUNIDADES];
 
   getPessoas() {
     return this.pessoas;
@@ -664,6 +726,68 @@ class StorageMemoryFallback {
     });
   }
 
+  getOportunidades() {
+    return this.oportunidades.map((o) => {
+      const cliente = this.getClienteById(o.cliente_id);
+      return {
+        ...o,
+        cliente: cliente
+          ? {
+              id: cliente.id,
+              nome: cliente.pessoa?.nome || null,
+              telefone: cliente.pessoa?.telefone || null,
+              email: cliente.pessoa?.email || null,
+              finalidade_principal: cliente.finalidade_principal,
+              status: cliente.status,
+              nivel_confianca: cliente.nivel_confianca,
+            }
+          : undefined,
+      };
+    });
+  }
+
+  addOportunidade(oportunidade: Partial<OportunidadeItem>): OportunidadeItem {
+    const newOportunidade: OportunidadeItem = {
+      id: oportunidade.id || `op-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      cliente_id: oportunidade.cliente_id!,
+      tipo: oportunidade.tipo || "outro",
+      descricao: oportunidade.descricao || "",
+      valor_estimado: oportunidade.valor_estimado ?? null,
+      status: oportunidade.status || "identificada",
+      prioridade: oportunidade.prioridade ?? 3,
+      evidencia: oportunidade.evidencia || null,
+      criado_por: oportunidade.criado_por || null,
+      responsavel_id: oportunidade.responsavel_id || null,
+      prazo_em: oportunidade.prazo_em || null,
+      proximo_passo: oportunidade.proximo_passo || null,
+      ganha_em: oportunidade.ganha_em || null,
+      perdida_em: oportunidade.perdida_em || null,
+      motivo_perda: oportunidade.motivo_perda || null,
+      criado_em: new Date().toISOString(),
+      atualizado_em: new Date().toISOString(),
+    };
+    this.oportunidades.unshift(newOportunidade);
+    return newOportunidade;
+  }
+
+  updateOportunidade(id: string, updates: Partial<OportunidadeItem>): OportunidadeItem | null {
+    const index = this.oportunidades.findIndex((o) => o.id === id);
+    if (index === -1) return null;
+    const updated: OportunidadeItem = {
+      ...this.oportunidades[index],
+      ...updates,
+      atualizado_em: new Date().toISOString(),
+    };
+    if (updates.status === "ganha" && !updated.ganha_em) {
+      updated.ganha_em = new Date().toISOString();
+    }
+    if (updates.status === "perdida" && !updated.perdida_em) {
+      updated.perdida_em = new Date().toISOString();
+    }
+    this.oportunidades[index] = updated;
+    return updated;
+  }
+
   getStats() {
     const totalClientes = this.clientes.length;
     const completudeMedia = totalClientes > 0
@@ -678,6 +802,15 @@ class StorageMemoryFallback {
     const handoffsAtivos = this.handoffs.filter(
       (h) => h.status !== "concluido"
     ).length;
+    const oportunidadesAtivas = this.oportunidades.filter(
+      (o) => o.status !== "ganha" && o.status !== "perdida" && o.status !== "arquivada"
+    ).length;
+    const oportunidadesValor = this.oportunidades
+      .filter((o) => o.status !== "ganha" && o.status !== "perdida" && o.status !== "arquivada")
+      .reduce((sum, o) => sum + (o.valor_estimado || 0), 0);
+    const investidoresPotenciais = this.clientes.filter(
+      (c) => c.finalidade_principal === "possivel_investidor" || c.oportunidade_upsell
+    ).length;
 
     return {
       totalClientes,
@@ -685,6 +818,9 @@ class StorageMemoryFallback {
       investidores,
       tarefasPendentes,
       handoffsAtivos,
+      oportunidadesAtivas,
+      oportunidadesValor,
+      investidoresPotenciais,
     };
   }
 }

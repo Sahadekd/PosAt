@@ -3,6 +3,7 @@ import { ClienteRepository } from "./adapters/repositories/cliente.repository";
 import { TarefaRepository } from "./adapters/repositories/tarefa.repository";
 import { HandoffRepository } from "./adapters/repositories/handoff.repository";
 import { InteracaoRepository } from "./adapters/repositories/interacao.repository";
+import { OportunidadeRepository } from "./adapters/repositories/oportunidade.repository";
 
 import { CriarClienteUseCase } from "./use-cases/CriarCliente";
 import { ListarClientesUseCase } from "./use-cases/ListarClientes";
@@ -20,12 +21,17 @@ import { AtualizarHandoffUseCase } from "./use-cases/AtualizarHandoff";
 
 import { CriarInteracaoUseCase } from "./use-cases/CriarInteracao";
 
+import { CriarOportunidadeUseCase } from "./use-cases/CriarOportunidade";
+import { ListarOportunidadesUseCase } from "./use-cases/ListarOportunidades";
+import { AtualizarOportunidadeUseCase } from "./use-cases/AtualizarOportunidade";
+
 // Repositories (Driven Adapters)
 export const pessoaRepo = new PessoaRepository();
 export const clienteRepo = new ClienteRepository();
 export const tarefaRepo = new TarefaRepository();
 export const handoffRepo = new HandoffRepository();
 export const interacaoRepo = new InteracaoRepository();
+export const oportunidadeRepo = new OportunidadeRepository();
 
 // Use Cases (Application Core)
 export const criarClienteUseCase = new CriarClienteUseCase(pessoaRepo, clienteRepo);
@@ -43,3 +49,7 @@ export const listarHandoffsUseCase = new ListarHandoffsUseCase(handoffRepo);
 export const atualizarHandoffUseCase = new AtualizarHandoffUseCase(handoffRepo, clienteRepo);
 
 export const criarInteracaoUseCase = new CriarInteracaoUseCase(interacaoRepo, clienteRepo);
+
+export const listarOportunidadesUseCase = new ListarOportunidadesUseCase(oportunidadeRepo);
+export const criarOportunidadeUseCase = new CriarOportunidadeUseCase(oportunidadeRepo);
+export const atualizarOportunidadeUseCase = new AtualizarOportunidadeUseCase(oportunidadeRepo);

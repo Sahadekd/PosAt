@@ -7,7 +7,7 @@ export class TarefaRepository implements ITarefaRepository {
   async findAll(): Promise<Tarefa[]> {
     if (supabaseAdmin) {
       const { data, error } = await supabaseAdmin
-        .from("tarefas")
+        .from("tarefas_pos_atendimento")
         .select(`
           *,
           cliente:clientes(
@@ -32,7 +32,7 @@ export class TarefaRepository implements ITarefaRepository {
   async findById(id: string): Promise<Tarefa | null> {
     if (supabaseAdmin) {
       const { data, error } = await supabaseAdmin
-        .from("tarefas")
+        .from("tarefas_pos_atendimento")
         .select(`
           *,
           cliente:clientes(
@@ -58,7 +58,7 @@ export class TarefaRepository implements ITarefaRepository {
   async create(data: Partial<Tarefa>): Promise<Tarefa> {
     if (supabaseAdmin) {
       const { data: created, error } = await supabaseAdmin
-        .from("tarefas")
+        .from("tarefas_pos_atendimento")
         .insert({
           cliente_id: data.cliente_id,
           titulo: data.titulo,
@@ -99,7 +99,7 @@ export class TarefaRepository implements ITarefaRepository {
       }
 
       const { data: updated, error } = await supabaseAdmin
-        .from("tarefas")
+        .from("tarefas_pos_atendimento")
         .update(updatePayload)
         .eq("id", id)
         .select(`

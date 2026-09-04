@@ -61,6 +61,97 @@ export type StatusTarefa =
   | "reagendada"
   | "sem_resposta";
 
+export type OrigemFluxo = "re_trabalho" | "tempo_real";
+
+export type TermometroCX =
+  | "promotor_mgm"          // 🟢 Promotor / MGM
+  | "neutro_nutricao"       // 🟡 Neutro / Nutrição
+  | "insatisfeito_distrato"; // 🔴 Risco de Distrato
+
+export type EtapaJornadaCS =
+  | "handoff"
+  | "onboarding"
+  | "repasse_financeiro"
+  | "vistoria"
+  | "pos_entrega";
+
+export type StatusRepasse =
+  | "em_analise_credito"
+  | "documentacao_pendente"
+  | "aprovado"
+  | "contrato_assinado"
+  | "recurso_liberado";
+
+export interface DonoLead {
+  corretorOriginalId?: string;
+  corretorOriginalNome?: string;
+  analistaCsId?: string;
+  analistaCsNome?: string;
+}
+
+// ---- Oportunidades (Pós-Venda / Recompra) ----
+
+export type TipoOportunidade =
+  | "recompra"
+  | "upgrade"
+  | "investimento_novo"
+  | "indicacao"
+  | "servicos"
+  | "outro";
+
+export type StatusOportunidade =
+  | "identificada"
+  | "em_avaliacao"
+  | "proposta_enviada"
+  | "negociacao"
+  | "ganha"
+  | "perdida"
+  | "arquivada";
+
+export interface OportunidadeItem {
+  id: string;
+  cliente_id: string;
+  tipo: TipoOportunidade;
+  descricao: string;
+  valor_estimado: number | null;
+  status: StatusOportunidade;
+  prioridade: number;
+  evidencia: string | null;
+  criado_por: string | null;
+  responsavel_id: string | null;
+  prazo_em: string | null;
+  proximo_passo: string | null;
+  ganha_em: string | null;
+  perdida_em: string | null;
+  motivo_perda: string | null;
+  criado_em: string;
+  atualizado_em: string;
+  cliente?: {
+    id: string;
+    nome: string | null;
+    telefone: string | null;
+    email: string | null;
+    finalidade_principal: FinalidadeCliente;
+    status: StatusRelacionamento;
+    nivel_confianca: NivelConfianca;
+  };
+}
+
+export interface PromessaVenda {
+  id: string;
+  descricao: string;
+  categoria: "desconto" | "prazo" | "brinde_mobiliario" | "documentacao" | "outro";
+  cumprida: boolean;
+}
+
+export interface RepasseFinanceiro {
+  status: StatusRepasse;
+  bancoFinanciador?: string;
+  valorFinanciado?: number;
+  dataPrevisaoRepasse?: string;
+  pendenciasDocumentais: string[];
+}
+
 export interface DadosCliente {
   nome?: string | null;
   telefone?: string | null;
@@ -142,6 +233,19 @@ export interface ClienteCompleto {
   proxima_acao_em?: string | null;
   criado_em: string;
   atualizado_em: string;
+  // CS Extended properties
+  origem_fluxo?: OrigemFluxo;
+  termometro_cx?: TermometroCX;
+  etapa_jornada?: EtapaJornadaCS;
+  empreendimento?: string | null;
+  unidade?: string | null;
+  corretor_original_nome?: string | null;
+  analista_cs_nome?: string | null;
+  promessas_venda?: PromessaVenda[];
+  repasse_financeiro?: RepasseFinanceiro;
+  oportunidade_upsell?: boolean;
+  indice_saude_score?: number;
+  alerta_distrato_ativo?: boolean;
   pessoa?: PessoaCompleta;
   interacoes?: InteracaoItem[];
   tarefas?: TarefaItem[];
@@ -200,3 +304,4 @@ export interface HandoffItem {
   criado_em: string;
   cliente?: ClienteCompleto;
 }
+

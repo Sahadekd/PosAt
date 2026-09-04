@@ -12,7 +12,7 @@ export class ClienteRepository implements IClienteRepository {
           *,
           pessoa:pessoas(*),
           interacoes:interacoes(*),
-          tarefas:tarefas(*),
+          tarefas:tarefas_pos_atendimento(*),
           handoffs:handoffs(*)
         `)
         .order("atualizado_em", { ascending: false });
@@ -66,7 +66,7 @@ export class ClienteRepository implements IClienteRepository {
           *,
           pessoa:pessoas(*),
           interacoes:interacoes(*),
-          tarefas:tarefas(*),
+          tarefas:tarefas_pos_atendimento(*),
           handoffs:handoffs(*)
         `)
         .eq("id", id)
@@ -114,7 +114,7 @@ export class ClienteRepository implements IClienteRepository {
           *,
           pessoa:pessoas(*),
           interacoes:interacoes(*),
-          tarefas:tarefas(*),
+          tarefas:tarefas_pos_atendimento(*),
           handoffs:handoffs(*)
         `)
         .single();
@@ -141,7 +141,7 @@ export class ClienteRepository implements IClienteRepository {
           *,
           pessoa:pessoas(*),
           interacoes:interacoes(*),
-          tarefas:tarefas(*),
+          tarefas:tarefas_pos_atendimento(*),
           handoffs:handoffs(*)
         `)
         .single();
@@ -162,7 +162,7 @@ export class ClienteRepository implements IClienteRepository {
         .select("id, indice_completude, finalidade_principal, e_investidor_confirmado");
 
       const { data: tarefas, error: errT } = await supabaseAdmin
-        .from("tarefas")
+        .from("tarefas_pos_atendimento")
         .select("id, status")
         .in("status", ["pendente", "em_andamento"]);
 

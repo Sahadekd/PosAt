@@ -51,6 +51,9 @@ export const QUERIES = {
         investidores
         tarefasPendentes
         handoffsAtivos
+        oportunidadesAtivas
+        oportunidadesValor
+        investidoresPotenciais
       }
     }
   `,
@@ -243,6 +246,39 @@ export const QUERIES = {
       }
     }
   `,
+
+  GET_OPORTUNIDADES: /* GraphQL */ `
+    query GetOportunidades {
+      oportunidades {
+        id
+        clienteId
+        tipo
+        descricao
+        valorEstimado
+        status
+        prioridade
+        evidencia
+        criadoPor
+        responsavelId
+        prazoEm
+        proximoPasso
+        ganhaEm
+        perdidaEm
+        motivoPerda
+        criadoEm
+        atualizadoEm
+        cliente {
+          id
+          nome
+          telefone
+          email
+          finalidadePrincipal
+          status
+          nivelConfianca
+        }
+      }
+    }
+  `,
 };
 
 // Mutations pré-definidas
@@ -316,6 +352,33 @@ export const MUTATIONS = {
         tipo
         descricao
         ocorreuEm
+      }
+    }
+  `,
+
+  CRIAR_OPORTUNIDADE: /* GraphQL */ `
+    mutation CriarOportunidade($input: CriarOportunidadeInput!) {
+      criarOportunidade(input: $input) {
+        id
+        tipo
+        descricao
+        status
+        valorEstimado
+        proximoPasso
+      }
+    }
+  `,
+
+  ATUALIZAR_OPORTUNIDADE: /* GraphQL */ `
+    mutation AtualizarOportunidade($input: AtualizarOportunidadeInput!) {
+      atualizarOportunidade(input: $input) {
+        id
+        status
+        proximoPasso
+        valorEstimado
+        ganhaEm
+        perdidaEm
+        motivoPerda
       }
     }
   `,

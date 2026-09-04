@@ -203,20 +203,26 @@ export default function NovoClienteModal({
     }
   }
 
+  const inputClass =
+    "w-full h-11 rounded-xl border border-slate-200 bg-white px-3.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:ring-2 focus:ring-slate-900 focus:outline-none transition dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-zinc-100";
+  const selectClass =
+    "w-full h-11 rounded-xl border border-slate-200 bg-white px-3 text-sm text-slate-900 focus:border-transparent focus:ring-2 focus:ring-slate-900 focus:outline-none transition dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:focus:ring-zinc-100";
+  const labelClass = "block text-sm font-medium text-slate-700 mb-1.5 dark:text-zinc-400";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/60 p-4 backdrop-blur-xs">
-      <div className="relative my-8 w-full max-w-4xl rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-2xl sm:p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm dark:bg-black/75">
+      <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-4xl flex-col overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-xl dark:border-zinc-700 dark:bg-zinc-900">
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-[#ede6d8] pb-4">
+        <div className="flex shrink-0 items-start justify-between border-b border-slate-100 px-6 py-5 sm:px-8 dark:border-zinc-700">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#b25c3f] text-white">
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-900 text-white dark:bg-white dark:text-zinc-900">
               <UserPlus className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-[#1e2722]">
+              <h2 className="text-xl font-semibold tracking-tight text-slate-900 dark:text-zinc-100">
                 Cadastro Unificado de Lead / Cliente
               </h2>
-              <p className="text-xs text-[#68706a]">
+              <p className="text-sm text-slate-500 dark:text-zinc-400">
                 Normalização, motor de segmentação e índice de completude em tempo real
               </p>
             </div>
@@ -224,18 +230,18 @@ export default function NovoClienteModal({
 
           <button
             onClick={aoFechar}
-            className="rounded-xl p-2 text-[#68706a] hover:bg-[#f5f1e9] hover:text-[#1e2722] transition"
+            className="rounded-xl p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:text-zinc-500 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Live Segmenter Badge Bar */}
-        <div className="my-5 rounded-2xl border border-[#d9d2c6] bg-[#f7f4ec] p-4">
+        <div className="my-4 shrink-0 rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3 dark:border-zinc-700 dark:bg-zinc-800/60">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[#b25c3f]" />
-              <span className="text-xs font-bold uppercase tracking-wider text-[#1e2722]">
+              <Sparkles className="h-4 w-4 text-slate-500 dark:text-zinc-400" />
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-zinc-200">
                 Inferência do Motor:
               </span>
               <span
@@ -251,13 +257,13 @@ export default function NovoClienteModal({
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#68706a]">Completude:</span>
-              <span className="font-bold text-sm text-[#1e2722]">
+              <span className="text-sm text-slate-500 dark:text-zinc-400">Completude:</span>
+              <span className="text-sm font-bold text-slate-900 dark:text-zinc-100">
                 {previewCompletude}%
               </span>
-              <div className="h-2 w-20 overflow-hidden rounded-full bg-[#ded6c7]">
+              <div className="h-2 w-20 overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700">
                 <div
-                  className="h-full bg-[#b25c3f] transition-all duration-300"
+                  className="h-full rounded-full bg-slate-900 transition-all duration-300 dark:bg-zinc-100"
                   style={{ width: `${previewCompletude}%` }}
                 />
               </div>
@@ -265,7 +271,7 @@ export default function NovoClienteModal({
           </div>
 
           {previewClassificacao.sinais.length > 0 && (
-            <div className="mt-2 text-xs text-[#5b625d]">
+            <div className="mt-2 text-sm text-slate-500 dark:text-zinc-400">
               <span className="font-semibold">Sinais identificados: </span>
               {previewClassificacao.sinais.join(" • ")}
             </div>
@@ -273,22 +279,22 @@ export default function NovoClienteModal({
         </div>
 
         {erro && (
-          <div className="mb-4 flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+          <div className="mx-6 mb-3 flex shrink-0 items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700 sm:mx-8 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-300">
             <AlertCircle className="h-4 w-4 flex-shrink-0" />
             <span>{erro}</span>
           </div>
         )}
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form id="form-novo-cliente" onSubmit={handleSubmit} className="flex-1 space-y-5 overflow-y-auto px-6 pb-6 sm:px-8">
           {/* Section 1: Dados Pessoais */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#b25c3f] mb-3">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               1. Identificação e Contato
             </h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Nome Completo *
                 </label>
                 <input
@@ -297,12 +303,12 @@ export default function NovoClienteModal({
                   placeholder="Ex: Carlos Eduardo Silveira"
                   value={nome}
                   onChange={(e) => setNome(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Telefone / WhatsApp
                 </label>
                 <input
@@ -310,12 +316,12 @@ export default function NovoClienteModal({
                   placeholder="(11) 98765-4321"
                   value={telefone}
                   onChange={(e) => setTelefone(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   E-mail
                 </label>
                 <input
@@ -323,12 +329,12 @@ export default function NovoClienteModal({
                   placeholder="carlos@exemplo.com.br"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   CPF / Documento
                 </label>
                 <input
@@ -336,18 +342,18 @@ export default function NovoClienteModal({
                   placeholder="000.000.000-00"
                   value={documento}
                   onChange={(e) => setDocumento(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Canal de Origem
                 </label>
                 <select
                   value={origem}
                   onChange={(e) => setOrigem(e.target.value as any)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={selectClass}
                 >
                   <option value="formulario">Formulário Landing Page</option>
                   <option value="whatsapp">WhatsApp Direto</option>
@@ -360,16 +366,16 @@ export default function NovoClienteModal({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Investidor Confirmado?
                 </label>
                 <div className="flex items-center gap-3 pt-2">
-                  <label className="flex items-center gap-1.5 text-xs text-[#1e2722] cursor-pointer">
+                  <label className="flex cursor-pointer items-center gap-1.5 text-sm text-slate-700 dark:text-zinc-200">
                     <input
                       type="checkbox"
                       checked={eInvestidorConfirmado}
                       onChange={(e) => setEInvestidorConfirmado(e.target.checked)}
-                      className="rounded border-[#d9d2c6] text-[#b25c3f] focus:ring-[#b25c3f]"
+                      className="h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900 dark:border-zinc-600 dark:text-zinc-100 dark:focus:ring-zinc-100"
                     />
                     <span>Sim, perfil investidor</span>
                   </label>
@@ -380,12 +386,12 @@ export default function NovoClienteModal({
 
           {/* Section 2: Finalidade e Intenção */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#b25c3f] mb-3">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               2. Finalidade e Análise Textual
             </h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Finalidade Declarada pelo Cliente
                 </label>
                 <input
@@ -393,12 +399,12 @@ export default function NovoClienteModal({
                   placeholder="Ex: Quero comprar para investir em studios para aluguel"
                   value={finalidadeDeclarada}
                   onChange={(e) => setFinalidadeDeclarada(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Observações e Contexto do Atendimento
                 </label>
                 <input
@@ -406,7 +412,7 @@ export default function NovoClienteModal({
                   placeholder="Ex: Está comparando bairros e busca alta valorização"
                   value={observacoes}
                   onChange={(e) => setObservacoes(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -414,12 +420,12 @@ export default function NovoClienteModal({
 
           {/* Section 3: Preferências do Imóvel & Localização */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#b25c3f] mb-3">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               3. Preferência de Imóvel e Localização
             </h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Região de Interesse
                 </label>
                 <input
@@ -427,12 +433,12 @@ export default function NovoClienteModal({
                   placeholder="Ex: Zona Sul"
                   value={regiaoInteresse}
                   onChange={(e) => setRegiaoInteresse(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Bairro(s) de Preferência
                 </label>
                 <input
@@ -440,12 +446,12 @@ export default function NovoClienteModal({
                   placeholder="Ex: Moema, Itaim, Vila Mariana"
                   value={bairroInteresse}
                   onChange={(e) => setBairroInteresse(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Tipo de Imóvel
                 </label>
                 <input
@@ -453,7 +459,7 @@ export default function NovoClienteModal({
                   placeholder="Ex: Studio compacto / Apartamento 3 dorms"
                   value={tipoImovel}
                   onChange={(e) => setTipoImovel(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
             </div>
@@ -461,12 +467,12 @@ export default function NovoClienteModal({
 
           {/* Section 4: Condições Financeiras e Prazos */}
           <div>
-            <h3 className="text-xs font-bold uppercase tracking-wider text-[#b25c3f] mb-3">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-zinc-400">
               4. Faixa de Investimento e Condições
             </h3>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Valor Máximo (R$)
                 </label>
                 <input
@@ -474,18 +480,18 @@ export default function NovoClienteModal({
                   placeholder="650000"
                   value={valorMaximo}
                   onChange={(e) => setValorMaximo(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Prazo Pretendido
                 </label>
                 <select
                   value={prazoCompra}
                   onChange={(e) => setPrazoCompra(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={selectClass}
                 >
                   <option value="Imediato">Imediato (30 dias)</option>
                   <option value="1 a 3 meses">1 a 3 meses</option>
@@ -496,7 +502,7 @@ export default function NovoClienteModal({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Forma de Pagamento
                 </label>
                 <input
@@ -504,12 +510,12 @@ export default function NovoClienteModal({
                   placeholder="Financiamento parcial / À vista"
                   value={formaPagamento}
                   onChange={(e) => setFormaPagamento(e.target.value)}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#1e2722] mb-1">
+                <label className={labelClass}>
                   Imóveis que já possui
                 </label>
                 <input
@@ -520,30 +526,31 @@ export default function NovoClienteModal({
                     setQuantidadeImoveis(e.target.value);
                     setJaPossuiImovel(Number(e.target.value) > 0);
                   }}
-                  className="w-full rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2.5 text-xs text-[#1e2722] focus:border-[#b25c3f] focus:outline-none"
+                  className={inputClass}
                 />
               </div>
             </div>
           </div>
-
-          {/* Footer Actions */}
-          <div className="flex items-center justify-end gap-3 border-t border-[#ede6d8] pt-4">
-            <button
-              type="button"
-              onClick={aoFechar}
-              className="rounded-xl border border-[#d9d2c6] bg-white px-5 py-2.5 text-xs font-semibold text-[#5b625d] hover:bg-[#f5f1e9] transition"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={salvando}
-              className="flex items-center gap-2 rounded-xl bg-[#1e2722] px-6 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-[#b25c3f] transition disabled:opacity-50"
-            >
-              {salvando ? "Processando e Classificando..." : "Salvar e Classificar"}
-            </button>
-          </div>
         </form>
+
+        {/* Footer Actions (fixed outside scroll) */}
+        <div className="flex shrink-0 items-center justify-end gap-3 border-t border-slate-100 px-6 py-4 sm:px-8 dark:border-zinc-700">
+          <button
+            type="button"
+            onClick={aoFechar}
+            className="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="form-novo-cliente"
+            disabled={salvando}
+            className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:opacity-50 dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200"
+          >
+            {salvando ? "Processando e Classificando..." : "Salvar e Classificar"}
+          </button>
+        </div>
       </div>
     </div>
   );

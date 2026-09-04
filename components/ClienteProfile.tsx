@@ -22,9 +22,18 @@ import {
   ChevronLeft,
   Plus,
   Tag,
+  ShieldAlert,
+  Send,
+  Building2,
+  FileText,
+  AlertTriangle,
+  Repeat,
+  ExternalLink,
+  Check,
+  X,
 } from "lucide-react";
-import { ClienteCompleto, TarefaItem } from "@/lib/segmentacao/tipos";
-import { finalidadeConfig, statusConfig, confiancaConfig } from "./ClienteCard";
+import { ClienteCompleto, TarefaItem, PromessaVenda, TermometroCX } from "@/lib/segmentacao/tipos";
+import { finalidadeConfig, statusConfig, confiancaConfig, termometroCXConfig } from "./ClienteCard";
 import NovaInteracaoModal from "./NovaInteracaoModal";
 import NovaTarefaModal from "./NovaTarefaModal";
 import HandoffModal from "./HandoffModal";
@@ -38,6 +47,28 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
   const [cliente, setCliente] = useState<ClienteCompleto>(clienteInicial);
   const [reclassificando, setReclassificando] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
+  const [alertaDistratoAtivo, setAlertaDistratoAtivo] = useState(
+    Boolean(cliente.alerta_distrato_ativo || cliente.termometro_cx === "insatisfeito_distrato")
+  );
+  const [statusHandoffLocal, setStatusHandoffLocal] = useState<string>(
+    cliente.handoffs?.[0]?.status || "pendente"
+  );
+  const [promessas, setPromessas] = useState<PromessaVenda[]>(
+    cliente.promessas_venda || [
+      {
+        id: "p-1",
+        descricao: "Piso laminado nas áreas secas incluso sem custo",
+        categoria: "brinde_mobiliario",
+        cumprida: false,
+      },
+      {
+        id: "p-2",
+        descricao: "Assessoria documental e ITBI parcelado em 12x",
+        categoria: "documentacao",
+        cumprida: true,
+      },
+    ]
+  );
 
   const [modalInteracaoAberto, setModalInteracaoAberto] = useState(false);
   const [modalTarefaAberto, setModalTarefaAberto] = useState(false);
@@ -66,7 +97,7 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
         await executeGraphQL(MUTATIONS.CLASSIFICAR_CLIENTE, {
           clienteId: cliente.id,
         });
-        setMensagemSucesso("Classificação recalculada via GraphQL com sucesso!");
+        setMensagemSucesso("Classificação recalculada com sucesso!");
         await recarregarCliente();
         setTimeout(() => setMensagemSucesso(null), 4000);
         return;
@@ -88,6 +119,23 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
     } finally {
       setReclassificando(false);
     }
+  }
+
+  function handleAcionarComiteDistrato() {
+    const confirmou = window.confirm(
+      "Tem certeza que deseja acionar o Comitê de Prevenção a Distrato? Um alerta de urgência será registrado para retenção imediata."
+    );
+    if (confirmou) {
+      setAlertaDistratoAtivo(true);
+      setMensagemSucesso("Comitê de Prevenção a Distrato acionado com prioridade máxima!");
+      setTimeout(() => setMensagemSucesso(null), 5000);
+    }
+  }
+
+  function togglePromessa(id: string) {
+    setPromessas((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, cumprida: !p.cumprida } : p))
+    );
   }
 
   async function toggleStatusTarefa(tarefa: TarefaItem) {
@@ -124,6 +172,26 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
   const confianca = confiancaConfig[cliente.nivel_confianca] || confiancaConfig.baixa;
   const completudeNum = Number(cliente.indice_completude || 0);
 
+  const cxTermometro: TermometroCX = alertaDistratoAtivo
+    ? "insatisfeito_distrato"
+    : cliente.termometro_cx || "neutro_nutricao";
+
+  const cxBadge = termometroCXConfig[cxTermometro] || termometroCXConfig.neutro_nutricao;
+
+  const empreendimento = cliente.empreendimento || (cliente.regiao_interesse ? `Condomínio ${cliente.regiao_interesse}` : "Residencial Jardins de Monet");
+  const corretor = cliente.corretor_original_nome || "Carlos Eduardo (Corretor)";
+  const analistaCS = cliente.analista_cs_nome || "Mariana Souza (CS)";
+  const scoreSaude = cliente.indice_saude_score || (alertaDistratoAtivo ? 30 : completudeNum >= 70 ? 92 : 65);
+
+  const repasseInfo = cliente.repasse_financeiro || {
+    status: "documentacao_pendente",
+    bancoFinanciador: "Caixa Econômica Federal",
+    valorFinanciado: cliente.valor_maximo ? cliente.valor_maximo * 0.8 : 450000,
+    pendenciasDocumentais: ["Comprovante de Renda Atualizado", "Certidão de Casamento Atualizada"],
+  };
+
+  const telefoneLimpo = (cliente.pessoa?.telefone || "").replace(/\D/g, "");
+
   const valorFormatado = (val: number | null | undefined) =>
     val != null
       ? new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 }).format(val)
@@ -131,136 +199,202 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
 
   return (
     <div className="space-y-6">
-      {/* Top Breadcrumb & Back */}
+      {/* Top Breadcrumb & Actions */}
       <div className="flex items-center justify-between">
         <Link
           href="/clientes"
-          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#5b625d] hover:text-[#1e2722] transition"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-100"
         >
           <ChevronLeft className="h-4 w-4" />
-          <span>Voltar para Lista de Clientes</span>
+          <span>Voltar para Gestão de Clientes</span>
         </Link>
 
         <button
           onClick={handleReclassificar}
           disabled={reclassificando}
-          className="flex items-center gap-2 rounded-xl border border-[#d9d2c6] bg-white px-4 py-2 text-xs font-semibold text-[#1e2722] shadow-xs hover:bg-[#f5f1e9] transition disabled:opacity-50"
+          className="flex items-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 disabled:opacity-50 dark:bg-zinc-800 dark:text-zinc-200 dark:ring-zinc-700 dark:hover:bg-zinc-700"
         >
-          <RefreshCw className={`h-3.5 w-3.5 text-[#b25c3f] ${reclassificando ? "animate-spin" : ""}`} />
+          <RefreshCw className={`h-4 w-4 ${reclassificando ? "animate-spin" : ""}`} />
           <span>{reclassificando ? "Recalculando..." : "Recalcular Classificação"}</span>
         </button>
       </div>
 
       {mensagemSucesso && (
-        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-xs font-medium text-emerald-800 animate-fade-in">
-          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-800 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-300">
+          <CheckCircle2 className="h-4 w-4 text-emerald-600 flex-shrink-0 dark:text-emerald-400" />
           <span>{mensagemSucesso}</span>
         </div>
       )}
 
-      {/* Main Header 360° Profile Card */}
-      <div className="rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-sm sm:p-8">
+      {/* Banner de Alerta Crítico (Comitê de Distrato) */}
+      {alertaDistratoAtivo && (
+        <div className="flex flex-col gap-3 rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm sm:flex-row sm:items-center sm:justify-between dark:border-rose-900 dark:bg-rose-500/15">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-rose-600 text-white">
+              <ShieldAlert className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-rose-950 dark:text-rose-300">
+                Comitê de Prevenção a Distrato Acionado!
+              </h3>
+              <p className="mt-0.5 text-sm text-rose-800 dark:text-rose-200">
+                Cliente sob risco iminente de cancelamento de contrato. Prioridade de atendimento nível 1 para a equipe de CS e Retenção.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setAlertaDistratoAtivo(false)}
+            className="self-start rounded-xl bg-rose-200 px-3 py-1.5 text-sm font-semibold text-rose-950 transition hover:bg-rose-300 sm:self-center dark:bg-rose-500/15 dark:text-rose-300 dark:hover:bg-rose-500/25"
+          >
+            Encerrar Protocolo
+          </button>
+        </div>
+      )}
+
+      {/* 1. Header 360° Profile Card */}
+      <div className="space-y-6 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8 dark:border-zinc-700 dark:bg-zinc-900">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${status.bg} ${status.text}`}>
+              <span className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold ${cxBadge.bg} ${cxBadge.text} ${cxBadge.border}`}>
+                {cxBadge.label}
+              </span>
+              <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${status.bg} ${status.text}`}>
                 {status.label}
               </span>
-              <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold ${finalidade.bg} ${finalidade.text} ${finalidade.border}`}>
+              <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-semibold ${finalidade.bg} ${finalidade.text} ${finalidade.border}`}>
                 <Sparkles className="h-3.5 w-3.5" />
                 {finalidade.label}
               </span>
-              <span className={`inline-flex items-center gap-1 rounded-full border px-3 py-1 text-xs font-bold ${confianca.bg}`}>
-                <ShieldCheck className="h-3.5 w-3.5" />
-                {confianca.label}
+              <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-400">
+                {cliente.origem_fluxo === "re_trabalho" ? "♻️ Base de Re-trabalho" : "⚡ Novos Dados (Tempo Real)"}
               </span>
             </div>
 
-            <h1 className="text-3xl font-bold tracking-tight text-[#1e2722]">
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-zinc-100">
               {cliente.pessoa?.nome || "Lead Sem Nome"}
             </h1>
 
-            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-[#5b625d]">
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-slate-500 dark:text-zinc-400">
+              <span className="flex items-center gap-1.5 font-semibold text-slate-900 dark:text-zinc-100">
+                <Building2 className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
+                {empreendimento} {cliente.unidade ? `(${cliente.unidade})` : ""}
+              </span>
               {cliente.pessoa?.telefone && (
                 <span className="flex items-center gap-1.5">
-                  <Phone className="h-4 w-4 text-[#b25c3f]" />
+                  <Phone className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
                   {cliente.pessoa.telefone}
                 </span>
               )}
               {cliente.pessoa?.email && (
                 <span className="flex items-center gap-1.5">
-                  <Mail className="h-4 w-4 text-[#b25c3f]" />
+                  <Mail className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
                   {cliente.pessoa.email}
                 </span>
               )}
               {cliente.pessoa?.documento && (
                 <span className="flex items-center gap-1.5">
-                  <Tag className="h-4 w-4 text-[#b25c3f]" />
-                  Doc: {cliente.pessoa.documento}
+                  <Tag className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
+                  CPF/Doc: {cliente.pessoa.documento}
                 </span>
               )}
-              <span className="flex items-center gap-1.5">
-                <Clock className="h-4 w-4 text-[#b25c3f]" />
-                Origem: <strong className="capitalize">{cliente.pessoa?.origem || "manual"}</strong>
-              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-4 pt-1 text-sm text-slate-500 dark:text-zinc-400">
+              <span><strong className="text-slate-700 dark:text-zinc-200">Corretor Original:</strong> {corretor}</span>
+              <span>•</span>
+              <span><strong className="text-slate-700 dark:text-zinc-200">Analista CS:</strong> {analistaCS}</span>
             </div>
           </div>
 
-          {/* Completeness & Actions */}
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center lg:flex-col lg:items-end">
-            <div className="w-full sm:w-60 rounded-2xl bg-[#f5f1e9] p-4 text-xs">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="font-semibold text-[#5b625d]">Índice de Completude</span>
-                <span className="font-bold text-sm text-[#1e2722]">{completudeNum}%</span>
+          {/* Completeness, Health Score & Emergency Action */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center lg:flex-col lg:items-end">
+            <button
+              onClick={handleAcionarComiteDistrato}
+              className="flex items-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700"
+            >
+              <ShieldAlert className="h-4 w-4" />
+              <span>Acionar Comitê de Prevenção a Distrato</span>
+            </button>
+
+            <div className="w-full rounded-2xl bg-slate-50 p-3 text-sm sm:w-60 dark:bg-zinc-800/60">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="font-medium text-slate-500 dark:text-zinc-400">Score de Relacionamento</span>
+                <span className="text-sm font-bold text-slate-900 dark:text-zinc-100">{scoreSaude}/100</span>
               </div>
-              <div className="h-2.5 w-full overflow-hidden rounded-full bg-[#ded6c7]">
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-zinc-700">
                 <div
                   className={`h-full transition-all duration-500 ${
-                    completudeNum >= 80 ? "bg-emerald-600" : completudeNum >= 50 ? "bg-amber-500" : "bg-rose-500"
+                    scoreSaude >= 80 ? "bg-emerald-600" : scoreSaude >= 50 ? "bg-amber-500" : "bg-rose-600"
                   }`}
-                  style={{ width: `${completudeNum}%` }}
+                  style={{ width: `${scoreSaude}%` }}
                 />
               </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <button
-                onClick={() => setModalInteracaoAberto(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2 text-xs font-semibold text-[#1e2722] shadow-xs hover:bg-[#f5f1e9] transition"
-              >
-                <MessageSquare className="h-3.5 w-3.5 text-[#b25c3f]" />
-                <span>Interação</span>
-              </button>
-              <button
-                onClick={() => setModalTarefaAberto(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-[#d9d2c6] bg-white px-3.5 py-2 text-xs font-semibold text-[#1e2722] shadow-xs hover:bg-[#f5f1e9] transition"
-              >
-                <CheckSquare className="h-3.5 w-3.5 text-[#1e2722]" />
-                <span>Tarefa</span>
-              </button>
-              <button
-                onClick={() => setModalHandoffAberto(true)}
-                className="flex items-center gap-1.5 rounded-xl bg-[#b25c3f] px-4 py-2 text-xs font-semibold text-white shadow-xs hover:bg-[#974b32] transition"
-              >
-                <ArrowRightLeft className="h-3.5 w-3.5" />
-                <span>Handoff</span>
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Missing fields alert banner */}
+        {/* 2. Barra de Ações Rápidas & Integrações */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-5 dark:border-zinc-700">
+          <div className="flex flex-wrap items-center gap-2">
+            {telefoneLimpo && (
+              <button
+                onClick={() =>
+                  window.open(
+                    `https://wa.me/55${telefoneLimpo}?text=Olá%20${encodeURIComponent(
+                      cliente.pessoa?.nome || ""
+                    )},%20aqui%20é%20da%20equipe%20de%20Pós-Atendimento.`,
+                    "_blank"
+                  )
+                }
+                className="flex items-center gap-1.5 rounded-xl border border-emerald-200 bg-emerald-50 px-3.5 py-2 text-sm font-semibold text-emerald-900 transition hover:bg-emerald-100 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/25"
+              >
+                <MessageSquare className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
+                <span>Mensagem EZ Chat (WhatsApp)</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => setModalInteracaoAberto(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200 transition hover:bg-slate-50 dark:bg-zinc-800 dark:text-zinc-200 dark:ring-zinc-700 dark:hover:bg-zinc-700"
+            >
+              <Send className="h-4 w-4" />
+              <span>Disparo de E-mail da Régua</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setMensagemSucesso("Cliente sinalizado no CRM para oferta de 2º Imóvel (Investimento)!");
+                setTimeout(() => setMensagemSucesso(null), 4000);
+              }}
+              className="flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3.5 py-2 text-sm font-semibold text-purple-900 transition hover:bg-purple-100 dark:border-purple-900 dark:bg-purple-500/15 dark:text-purple-300 dark:hover:bg-purple-500/25"
+            >
+              <Sparkles className="h-4 w-4 text-purple-700 dark:text-purple-400" />
+              <span>Mapear Up-Sell / 2º Imóvel</span>
+            </button>
+          </div>
+
+          <button
+            onClick={() => setModalHandoffAberto(true)}
+            className="flex items-center gap-1.5 rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+          >
+            <Repeat className="h-4 w-4" />
+            <span>Revisar Handoff</span>
+          </button>
+        </div>
+
+        {/* Missing fields alert */}
         {cliente.campos_faltantes && cliente.campos_faltantes.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-[#eed4c8] bg-[#fff5f0] p-4">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#a34426]">
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
-              <span>Dados ausentes para atingir 100% de qualificação:</span>
+          <div className="rounded-2xl border border-amber-100 bg-amber-50 p-4 dark:border-amber-900 dark:bg-amber-500/15">
+            <div className="flex items-center gap-2 text-sm font-semibold text-amber-900 dark:text-amber-300">
+              <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+              <span>Dados cadastrais ausentes para atingir 100% de qualificação:</span>
             </div>
             <div className="mt-2 flex flex-wrap gap-2">
               {cliente.campos_faltantes.map((campo) => (
                 <span
                   key={campo}
-                  className="rounded-lg bg-[#ffe8df] px-2.5 py-1 text-xs font-semibold text-[#8c351b]"
+                  className="rounded-full bg-white px-2.5 py-1 text-sm font-medium text-amber-800 ring-1 ring-amber-200 dark:bg-zinc-800 dark:text-amber-300 dark:ring-amber-700"
                 >
                   {campo.replace(/_/g, " ")}
                 </span>
@@ -270,131 +404,219 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
         )}
       </div>
 
-      {/* 2-Column Content Layout */}
+      {/* Grid de 2 Colunas */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Left Column: Preferences & Intelligence */}
+        {/* Left Column: Handoff, Promessas e Repasse Financeiro */}
         <div className="space-y-6 lg:col-span-6">
-          {/* Section: Próxima Ação & Sinais */}
-          <div className="rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-xs">
-            <div className="flex items-center gap-2 mb-4">
-              <Sparkles className="h-4 w-4 text-[#b25c3f]" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[#1e2722]">
-                Diagnóstico & Próxima Ação
+          {/* MÓDULO DE HANDOFF (Passagem de Bastão & Promessas de Venda) */}
+          <div className="space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900 dark:text-zinc-100">
+                  Passagem de Bastão (Handoff)
+                </h2>
+              </div>
+              <span className="rounded-full bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-800 ring-1 ring-purple-100 dark:bg-purple-500/15 dark:text-purple-300 dark:ring-purple-900/40">
+                Status: {statusHandoffLocal.replace(/_/g, " ")}
+              </span>
+            </div>
+
+            <div className="space-y-3 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm dark:border-zinc-700 dark:bg-zinc-800/60">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-700 dark:text-zinc-200">
+                  🎯 Promessas de Venda Feitas pelo Corretor ({corretor}):
+                </span>
+                <span className="text-xs text-slate-400 dark:text-zinc-500">Marque ao auditar</span>
+              </div>
+
+              <div className="space-y-2">
+                {promessas.map((p) => (
+                  <div
+                    key={p.id}
+                    onClick={() => togglePromessa(p.id)}
+                    className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 transition ${
+                      p.cumprida
+                        ? "border-emerald-200 bg-emerald-50/50 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200"
+                        : "border-slate-200 bg-white text-slate-900 hover:bg-slate-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+                    }`}
+                  >
+                    <div
+                      className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border ${
+                        p.cumprida ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 dark:border-zinc-600"
+                      }`}
+                    >
+                      {p.cumprida && <Check className="h-3 w-3" />}
+                    </div>
+                    <div className="flex-1">
+                      <p className={`font-medium ${p.cumprida ? "text-stone-500 line-through" : ""}`}>
+                        {p.descricao}
+                      </p>
+                      <span className="text-xs uppercase tracking-wide text-slate-400 dark:text-zinc-500">
+                        Categoria: {p.categoria.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={() => {
+                  setStatusHandoffLocal("aceito_cs");
+                  setMensagemSucesso("Handoff aceito pelo CS! Cliente transferido para a régua de Onboarding.");
+                  setTimeout(() => setMensagemSucesso(null), 4000);
+                }}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Aceitar Handoff</span>
+              </button>
+              <button
+                onClick={() => {
+                  setStatusHandoffLocal("devolvido_corretor");
+                  setMensagemSucesso("Handoff devolvido ao corretor para esclarecimento de promessas.");
+                  setTimeout(() => setMensagemSucesso(null), 4000);
+                }}
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 py-2.5 text-sm font-semibold text-rose-800 transition hover:bg-rose-100 dark:border-rose-900 dark:bg-rose-500/15 dark:text-rose-300 dark:hover:bg-rose-500/25"
+              >
+                <X className="h-4 w-4" />
+                <span>Devolver ao Corretor</span>
+              </button>
+            </div>
+          </div>
+
+          {/* MÓDULO FINANCEIRO / REPASSE */}
+          <div className="space-y-4 rounded-3xl border border-slate-100 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900 dark:text-zinc-100">
+                Assessoria de Repasse Financeiro
               </h2>
             </div>
 
-            {cliente.proxima_acao && (
-              <div className="rounded-2xl border border-[#d9d2c6] bg-[#f9f7f2] p-4 text-xs">
-                <span className="font-bold text-[#1e2722] block mb-1">Diretriz Estratégica:</span>
-                <p className="text-[#5b625d] leading-relaxed text-sm">{cliente.proxima_acao}</p>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="rounded-2xl bg-slate-50 p-3.5 dark:bg-zinc-800/60">
+                <span className="block text-slate-500 dark:text-zinc-400">Status do Repasse</span>
+                <strong className="mt-0.5 block text-sm font-semibold capitalize text-slate-900 dark:text-zinc-100">
+                  {repasseInfo.status.replace(/_/g, " ")}
+                </strong>
+              </div>
+              <div className="rounded-2xl bg-slate-50 p-3.5 dark:bg-zinc-800/60">
+                <span className="block text-slate-500 dark:text-zinc-400">Banco Financiador</span>
+                <strong className="mt-0.5 block text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                  {repasseInfo.bancoFinanciador || "Em análise"}
+                </strong>
+              </div>
+            </div>
+
+            {repasseInfo.valorFinanciado && (
+              <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-3 text-sm dark:border-zinc-700 dark:bg-zinc-800/60">
+                <span className="text-slate-500 dark:text-zinc-400">Valor Previsto de Financiamento:</span>
+                <strong className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
+                  {valorFormatado(repasseInfo.valorFinanciado)}
+                </strong>
               </div>
             )}
 
-            <div className="mt-4 space-y-3">
-              <div className="text-xs">
-                <span className="font-semibold text-[#1e2722] block mb-1">Sinais Identificados pelo Motor:</span>
-                {cliente.sinais_classificacao && cliente.sinais_classificacao.length > 0 ? (
-                  <ul className="space-y-1">
-                    {cliente.sinais_classificacao.map((sinal, idx) => (
-                      <li key={idx} className="flex items-start gap-1.5 text-xs text-[#5b625d]">
-                        <span className="text-[#b25c3f] font-bold">•</span>
-                        <span>{sinal}</span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-xs text-[#8b918c]">Nenhum sinal específico detectado até o momento.</p>
-                )}
+            {repasseInfo.pendenciasDocumentais && repasseInfo.pendenciasDocumentais.length > 0 && (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-sm dark:border-amber-900 dark:bg-amber-500/15">
+                <div className="mb-1.5 flex items-center gap-1.5 font-semibold text-amber-900 dark:text-amber-300">
+                  <AlertTriangle className="h-4 w-4 flex-shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span>Pendências Documentais para Repasse:</span>
+                </div>
+                <ul className="list-inside list-disc space-y-1 text-amber-800 dark:text-amber-200">
+                  {repasseInfo.pendenciasDocumentais.map((doc, idx) => (
+                    <li key={idx}>{doc}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Timeline da Régua e Tarefas */}
+        <div className="space-y-6 lg:col-span-6">
+          {/* Timeline da Régua de Relacionamento */}
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900 dark:text-zinc-100">
+                  Régua de Relacionamento & Timeline
+                </h2>
+              </div>
+              <button
+                onClick={() => setModalInteracaoAberto(true)}
+                className="flex items-center gap-1 text-sm font-semibold text-slate-700 transition hover:text-slate-900 dark:text-zinc-200 dark:hover:text-zinc-100"
+              >
+                <Plus className="h-4 w-4" />
+                Registrar Contato
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              {/* Eventos automáticos e manuais combinados */}
+              <div className="relative border-l-2 border-purple-400 pb-3 pl-6">
+                <div className="absolute -left-1.5 top-0.5 h-3 w-3 rounded-full bg-purple-600 ring-4 ring-purple-100 dark:ring-purple-900/40" />
+                <div className="flex items-center justify-between text-xs font-semibold uppercase text-purple-700 dark:text-purple-300">
+                  <span>Régua Automática • Onboarding</span>
+                  <span>Ontem</span>
+                </div>
+                <p className="mt-0.5 font-medium text-slate-900 dark:text-zinc-100">
+                  E-mail de Boas-Vindas e Acesso ao Portal do Cliente disparado com sucesso.
+                </p>
               </div>
 
-              {cliente.finalidades_secundarias && cliente.finalidades_secundarias.length > 0 && (
-                <div className="text-xs pt-2 border-t border-[#ede6d8]">
-                  <span className="font-semibold text-[#1e2722] block mb-1">Finalidades Secundárias:</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {cliente.finalidades_secundarias.map((f) => (
-                      <span key={f} className="rounded-md bg-[#f5f1e9] px-2 py-0.5 text-xs text-[#1e2722]">
-                        {finalidadeConfig[f]?.label || f}
+              {cliente.interacoes && cliente.interacoes.length > 0 ? (
+                cliente.interacoes.map((item) => (
+                  <div key={item.id} className="relative border-l-2 border-slate-200 pb-3 pl-6 text-sm dark:border-zinc-700">
+                    <div className="absolute -left-1.5 top-0.5 h-3 w-3 rounded-full bg-slate-900 dark:bg-zinc-100" />
+                    <div className="mb-1 flex items-center justify-between gap-2 text-slate-400 dark:text-zinc-500">
+                      <span className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
+                        {item.tipo} {item.canal ? `• ${item.canal}` : ""}
                       </span>
-                    ))}
+                      <span>{new Date(item.ocorreu_em).toLocaleDateString("pt-BR")}</span>
+                    </div>
+                    <p className="font-medium leading-relaxed text-slate-900 dark:text-zinc-100">{item.descricao}</p>
+                    {item.resultado && (
+                      <div className="mt-1.5 rounded-lg bg-slate-50 p-2 text-xs text-slate-500 dark:bg-zinc-800/60 dark:text-zinc-400">
+                        <strong className="text-slate-700 dark:text-zinc-200">Resultado: </strong>
+                        {item.resultado}
+                      </div>
+                    )}
                   </div>
+                ))
+              ) : (
+                <div className="relative border-l-2 border-emerald-400 pb-3 pl-6">
+                  <div className="absolute -left-1.5 top-0.5 h-3 w-3 rounded-full bg-emerald-600" />
+                  <div className="flex items-center justify-between text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-300">
+                    <span>Venda Convertida • Corretor</span>
+                    <span>Há 5 dias</span>
+                  </div>
+                  <p className="mt-0.5 font-medium text-slate-900 dark:text-zinc-100">
+                    Contrato de compra e venda assinado no estande de vendas.
+                  </p>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Section: Preferências de Compra e Imóvel */}
-          <div className="rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-xs">
-            <div className="flex items-center gap-2 mb-4">
-              <Building className="h-4 w-4 text-[#b25c3f]" />
-              <h2 className="text-sm font-bold uppercase tracking-wider text-[#1e2722]">
-                Perfil de Busca e Imóvel
-              </h2>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div className="rounded-2xl bg-[#f5f1e9] p-3.5">
-                <span className="text-[#68706a] block">Tipo de Imóvel</span>
-                <strong className="text-sm text-[#1e2722] mt-0.5 block">
-                  {cliente.tipo_imovel || "Não informado"}
-                </strong>
-              </div>
-
-              <div className="rounded-2xl bg-[#f5f1e9] p-3.5">
-                <span className="text-[#68706a] block">Padrão</span>
-                <strong className="text-sm text-[#1e2722] mt-0.5 block">
-                  {cliente.padrao_imovel || "Não especificado"}
-                </strong>
-              </div>
-
-              <div className="rounded-2xl bg-[#f5f1e9] p-3.5">
-                <span className="text-[#68706a] block">Região / Bairro</span>
-                <strong className="text-sm text-[#1e2722] mt-0.5 block">
-                  {[cliente.bairro_interesse, cliente.cidade_interesse || cliente.regiao_interesse].filter(Boolean).join(" - ") || "Não informado"}
-                </strong>
-              </div>
-
-              <div className="rounded-2xl bg-[#f5f1e9] p-3.5">
-                <span className="text-[#68706a] block">Prazo Pretendido</span>
-                <strong className="text-sm text-[#1e2722] mt-0.5 block">
-                  {cliente.prazo_compra || "Não informado"}
-                </strong>
-              </div>
-
-              <div className="rounded-2xl bg-[#f5f1e9] p-3.5">
-                <span className="text-[#68706a] block">Faixa de Investimento</span>
-                <strong className="text-sm text-[#1e2722] mt-0.5 block">
-                  {cliente.valor_minimo || cliente.valor_maximo
-                    ? `${valorFormatado(cliente.valor_minimo)} até ${valorFormatado(cliente.valor_maximo)}`
-                    : "Não informado"}
-                </strong>
-              </div>
-
-              <div className="rounded-2xl bg-[#f5f1e9] p-3.5">
-                <span className="text-[#68706a] block">Forma de Pagamento</span>
-                <strong className="text-sm text-[#1e2722] mt-0.5 block">
-                  {cliente.forma_pagamento || "Não informado"}
-                </strong>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column: Timeline, Tasks & Handoffs */}
-        <div className="space-y-6 lg:col-span-6">
-          {/* Tasks Section */}
-          <div className="rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
+          {/* Tarefas Operacionais de CS */}
+          <div className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div className="mb-4 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CheckSquare className="h-4 w-4 text-[#b25c3f]" />
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[#1e2722]">
-                  Tarefas de Pós-Atendimento
+                <CheckSquare className="h-4 w-4 text-slate-400 dark:text-zinc-500" />
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-900 dark:text-zinc-100">
+                  Tarefas Operacionais de CS
                 </h2>
               </div>
               <button
                 onClick={() => setModalTarefaAberto(true)}
-                className="flex items-center gap-1 text-xs font-semibold text-[#b25c3f] hover:text-[#974b32]"
+                className="flex items-center gap-1 text-sm font-semibold text-slate-700 transition hover:text-slate-900 dark:text-zinc-200 dark:hover:text-zinc-100"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 Nova Tarefa
               </button>
             </div>
@@ -406,16 +628,16 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
                   return (
                     <div
                       key={tarefa.id}
-                      className={`flex items-start gap-3 rounded-2xl border p-3.5 text-xs transition ${
+                      className={`flex items-start gap-3 rounded-2xl border p-3.5 text-sm transition ${
                         concluida
-                          ? "border-emerald-200 bg-emerald-50/40 text-emerald-900 opacity-75"
-                          : "border-[#d9d2c6] bg-[#faf8f2] text-[#1e2722]"
+                          ? "border-emerald-200 bg-emerald-50/40 text-emerald-900 opacity-75 dark:border-emerald-900 dark:bg-emerald-500/15 dark:text-emerald-200"
+                          : "border-slate-100 bg-slate-50 text-slate-900 dark:border-zinc-700 dark:bg-zinc-800/60 dark:text-zinc-100"
                       }`}
                     >
                       <button
                         onClick={() => toggleStatusTarefa(tarefa)}
-                        className={`mt-0.5 flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-md border transition ${
-                          concluida ? "border-emerald-600 bg-emerald-600 text-white" : "border-stone-400 bg-white"
+                        className={`mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-md border transition ${
+                          concluida ? "border-emerald-600 bg-emerald-600 text-white" : "border-slate-300 bg-white dark:border-zinc-600 dark:bg-zinc-900"
                         }`}
                       >
                         {concluida && <CheckCircle2 className="h-3 w-3" />}
@@ -423,15 +645,15 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
 
                       <div className="flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <strong className={concluida ? "line-through text-stone-500" : "text-[#1e2722]"}>
+                          <strong className={concluida ? "text-stone-500 line-through" : "text-slate-900"}>
                             {tarefa.titulo}
                           </strong>
-                          <span className="rounded bg-white px-1.5 py-0.5 text-[10px] font-semibold border border-[#ded6c7]">
+                          <span className="rounded-full border border-slate-200 bg-white px-1.5 py-0.5 text-xs font-medium dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
                             Prioridade {tarefa.prioridade}
                           </span>
                         </div>
                         {tarefa.descricao && (
-                          <p className="mt-1 text-[#5b625d] leading-relaxed">{tarefa.descricao}</p>
+                          <p className="mt-1 leading-relaxed text-slate-500 dark:text-zinc-400">{tarefa.descricao}</p>
                         )}
                       </div>
                     </div>
@@ -439,94 +661,9 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
                 })}
               </div>
             ) : (
-              <p className="text-xs text-[#8b918c] py-4 text-center">Nenhuma tarefa pendente para este cliente.</p>
+              <p className="py-4 text-center text-sm text-slate-400 dark:text-zinc-500">Nenhuma tarefa pendente para este cliente.</p>
             )}
           </div>
-
-          {/* Interactions Timeline */}
-          <div className="rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-xs">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <MessageSquare className="h-4 w-4 text-[#b25c3f]" />
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[#1e2722]">
-                  Histórico de Interações
-                </h2>
-              </div>
-              <button
-                onClick={() => setModalInteracaoAberto(true)}
-                className="flex items-center gap-1 text-xs font-semibold text-[#b25c3f] hover:text-[#974b32]"
-              >
-                <Plus className="h-3.5 w-3.5" />
-                Registrar Contato
-              </button>
-            </div>
-
-            {cliente.interacoes && cliente.interacoes.length > 0 ? (
-              <div className="space-y-4">
-                {cliente.interacoes.map((item) => (
-                  <div key={item.id} className="relative pl-6 border-l-2 border-[#ded6c7] pb-2 text-xs">
-                    <div className="absolute -left-1.5 top-0.5 h-3 w-3 rounded-full bg-[#b25c3f]" />
-                    <div className="flex items-center justify-between gap-2 text-[#8b918c] mb-1">
-                      <span className="font-semibold uppercase tracking-wider text-[10px] text-[#b25c3f]">
-                        {item.tipo} {item.canal ? `• ${item.canal}` : ""}
-                      </span>
-                      <span>{new Date(item.ocorreu_em).toLocaleDateString("pt-BR")}</span>
-                    </div>
-                    <p className="text-[#1e2722] font-medium leading-relaxed">{item.descricao}</p>
-                    {item.resultado && (
-                      <div className="mt-1.5 rounded-lg bg-[#f5f1e9] p-2 text-[11px] text-[#5b625d]">
-                        <strong className="text-[#1e2722]">Resultado: </strong>
-                        {item.resultado}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-[#8b918c] py-4 text-center">Nenhuma interação registrada ainda.</p>
-            )}
-          </div>
-
-          {/* Handoff Section */}
-          {cliente.handoffs && cliente.handoffs.length > 0 && (
-            <div className="rounded-3xl border border-[#d9d2c6] bg-[#fffdf8] p-6 shadow-xs">
-              <div className="flex items-center gap-2 mb-4">
-                <ArrowRightLeft className="h-4 w-4 text-[#b25c3f]" />
-                <h2 className="text-sm font-bold uppercase tracking-wider text-[#1e2722]">
-                  Passagem de Bastão (Handoffs)
-                </h2>
-              </div>
-
-              <div className="space-y-3">
-                {cliente.handoffs.map((h) => (
-                  <div key={h.id} className="rounded-2xl border border-[#d9d2c6] bg-[#f9f7f2] p-4 text-xs space-y-2">
-                    <div className="flex justify-between items-center">
-                      <strong className="text-sm text-[#1e2722]">{h.motivo || "Transição"}</strong>
-                      <span className="rounded bg-[#ffe8df] text-[#8c351b] px-2 py-0.5 text-[10px] font-bold uppercase">
-                        {h.status}
-                      </span>
-                    </div>
-                    {h.resumo && <p className="text-[#5b625d] leading-relaxed">{h.resumo}</p>}
-                    {h.expectativa_cliente && (
-                      <p className="text-[11px] text-[#1e2722]">
-                        <strong>Expectativa: </strong> {h.expectativa_cliente}
-                      </p>
-                    )}
-                    {h.pendencias && h.pendencias.length > 0 && (
-                      <div className="pt-2 border-t border-[#ede6d8]">
-                        <strong className="block text-[11px] text-[#1e2722] mb-1">Checklist:</strong>
-                        <ul className="space-y-1">
-                          {h.pendencias.map((p, idx) => (
-                            <li key={idx} className="text-[#5b625d]">• {p}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
 
@@ -565,3 +702,4 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
     </div>
   );
 }
+

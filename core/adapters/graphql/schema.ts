@@ -105,12 +105,46 @@ export const typeDefs = /* GraphQL */ `
     cliente: Cliente
   }
 
+  type OportunidadeClienteInfo {
+    id: ID!
+    nome: String
+    telefone: String
+    email: String
+    finalidadePrincipal: String!
+    status: String!
+    nivelConfianca: String!
+  }
+
+  type Oportunidade {
+    id: ID!
+    clienteId: ID!
+    tipo: String!
+    descricao: String!
+    valorEstimado: Float
+    status: String!
+    prioridade: Int!
+    evidencia: String
+    criadoPor: String
+    responsavelId: String
+    prazoEm: String
+    proximoPasso: String
+    ganhaEm: String
+    perdidaEm: String
+    motivoPerda: String
+    criadoEm: String!
+    atualizadoEm: String!
+    cliente: OportunidadeClienteInfo
+  }
+
   type DashboardStats {
     totalClientes: Int!
     completudeMedia: Int!
     investidores: Int!
     tarefasPendentes: Int!
     handoffsAtivos: Int!
+    oportunidadesAtivas: Int
+    oportunidadesValor: Float
+    investidoresPotenciais: Int
   }
 
   type ResultadoClassificacao {
@@ -208,11 +242,38 @@ export const typeDefs = /* GraphQL */ `
     ocorreuEm: String
   }
 
+  input CriarOportunidadeInput {
+    clienteId: ID!
+    tipo: String!
+    descricao: String!
+    valorEstimado: Float
+    prioridade: Int
+    evidencia: String
+    criadoPor: String
+    responsavelId: String
+    prazoEm: String
+    proximoPasso: String
+  }
+
+  input AtualizarOportunidadeInput {
+    id: ID!
+    status: String
+    descricao: String
+    valorEstimado: Float
+    prioridade: Int
+    evidencia: String
+    responsavelId: String
+    prazoEm: String
+    proximoPasso: String
+    motivoPerda: String
+  }
+
   type Query {
     clientes(filtros: FiltrosClienteInput): [Cliente!]!
     cliente(id: ID!): Cliente
     tarefas: [Tarefa!]!
     handoffs: [Handoff!]!
+    oportunidades: [Oportunidade!]!
     interacoes(clienteId: ID): [Interacao!]!
     dashboardStats: DashboardStats!
   }
@@ -224,6 +285,8 @@ export const typeDefs = /* GraphQL */ `
     criarHandoff(input: CriarHandoffInput!): Handoff!
     atualizarHandoff(input: AtualizarHandoffInput!): Handoff
     criarInteracao(input: CriarInteracaoInput!): Interacao!
+    criarOportunidade(input: CriarOportunidadeInput!): Oportunidade!
+    atualizarOportunidade(input: AtualizarOportunidadeInput!): Oportunidade
     classificarCliente(clienteId: ID!): ResultadoClassificacao!
   }
 `;

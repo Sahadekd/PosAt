@@ -3,6 +3,7 @@ import {
   obterClienteUseCase,
   listarTarefasUseCase,
   listarHandoffsUseCase,
+  listarOportunidadesUseCase,
   obterStatsUseCase,
   criarClienteUseCase,
   criarTarefaUseCase,
@@ -10,6 +11,8 @@ import {
   criarHandoffUseCase,
   atualizarHandoffUseCase,
   criarInteracaoUseCase,
+  criarOportunidadeUseCase,
+  atualizarOportunidadeUseCase,
   classificarClienteUseCase,
   interacaoRepo,
 } from "../../container";
@@ -40,6 +43,10 @@ export const resolvers = {
 
     handoffs: async () => {
       return listarHandoffsUseCase.execute();
+    },
+
+    oportunidades: async () => {
+      return listarOportunidadesUseCase.execute();
     },
 
     interacoes: async (_: unknown, args: { clienteId?: string }) => {
@@ -125,6 +132,36 @@ export const resolvers = {
       });
     },
 
+    criarOportunidade: async (_: unknown, args: { input: any }) => {
+      return criarOportunidadeUseCase.execute({
+        clienteId: args.input.clienteId,
+        tipo: args.input.tipo,
+        descricao: args.input.descricao,
+        valorEstimado: args.input.valorEstimado,
+        prioridade: args.input.prioridade,
+        evidencia: args.input.evidencia,
+        criadoPor: args.input.criadoPor,
+        responsavelId: args.input.responsavelId,
+        prazoEm: args.input.prazoEm,
+        proximoPasso: args.input.proximoPasso,
+      });
+    },
+
+    atualizarOportunidade: async (_: unknown, args: { input: any }) => {
+      return atualizarOportunidadeUseCase.execute({
+        id: args.input.id,
+        status: args.input.status,
+        descricao: args.input.descricao,
+        valorEstimado: args.input.valorEstimado,
+        prioridade: args.input.prioridade,
+        evidencia: args.input.evidencia,
+        responsavelId: args.input.responsavelId,
+        prazoEm: args.input.prazoEm,
+        proximoPasso: args.input.proximoPasso,
+        motivoPerda: args.input.motivoPerda,
+      });
+    },
+
     classificarCliente: async (_: unknown, args: { clienteId: string }) => {
       return classificarClienteUseCase.execute(args.clienteId);
     },
@@ -204,5 +241,20 @@ export const resolvers = {
     criadoPor: (i: any) => i.criado_por,
     ocorreuEm: (i: any) => i.ocorreu_em,
     dadosExtra: (i: any) => i.dados_extra,
+  },
+
+  Oportunidade: {
+    clienteId: (o: any) => o.cliente_id,
+    valorEstimado: (o: any) => o.valor_estimado,
+    criadoPor: (o: any) => o.criado_por,
+    responsavelId: (o: any) => o.responsavel_id,
+    prazoEm: (o: any) => o.prazo_em,
+    proximoPasso: (o: any) => o.proximo_passo,
+    ganhaEm: (o: any) => o.ganha_em,
+    perdidaEm: (o: any) => o.perdida_em,
+    motivoPerda: (o: any) => o.motivo_perda,
+    criadoEm: (o: any) => o.criado_em || new Date().toISOString(),
+    atualizadoEm: (o: any) => o.atualizado_em || new Date().toISOString(),
+    cliente: (o: any) => o.cliente,
   },
 };
