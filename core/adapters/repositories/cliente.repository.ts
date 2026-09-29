@@ -39,6 +39,9 @@ export class ClienteRepository implements IClienteRepository {
         query = query.lte("indice_completude", max);
       }
     }
+    if (filtros?.responsavel_id) {
+      query = query.eq("responsavel_id", filtros.responsavel_id);
+    }
 
     return query;
   }
@@ -81,10 +84,6 @@ export class ClienteRepository implements IClienteRepository {
           );
         }
       }
-      if (filtros?.responsavel_id) {
-        query = query.eq("responsavel_id", filtros.responsavel_id);
-      }
-
       if (items) {
         if (filtros?.busca) {
           const termo = filtros.busca.toLowerCase();

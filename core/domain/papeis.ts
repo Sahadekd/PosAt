@@ -10,6 +10,7 @@ export type Modulo =
   | "clientes"
   | "oportunidades"
   | "tarefas"
+  | "fluxos"
   | "kanban"
   | "conversas"
   | "handoffs"
@@ -42,6 +43,7 @@ export const MODULOS: Modulo[] = [
   "clientes",
   "oportunidades",
   "tarefas",
+  "fluxos",
   "kanban",
   "conversas",
   "handoffs",
@@ -57,6 +59,7 @@ export const MODULO_LABEL: Record<Modulo, string> = {
   clientes: "Clientes",
   oportunidades: "Oportunidades",
   tarefas: "Tarefas",
+  fluxos: "Fluxos",
   kanban: "Kanban",
   conversas: "Conversas",
   handoffs: "Handoffs",
@@ -81,6 +84,7 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
     clientes: TODAS,
     oportunidades: TODAS,
     tarefas: TODAS,
+    fluxos: TODAS,
     kanban: TODAS,
     conversas: TODAS,
     handoffs: TODAS,
@@ -95,6 +99,7 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
     clientes: ["ver", "editar", "gerenciar"],
     oportunidades: ["ver", "criar", "editar", "aprovar"],
     tarefas: ["ver", "criar", "editar"],
+    fluxos: ["ver", "criar", "editar", "aprovar"],
     kanban: ["ver", "editar"],
     conversas: ["ver"],
     handoffs: ["ver", "editar", "aprovar"],
@@ -109,6 +114,7 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
     clientes: ["ver", "editar"],
     oportunidades: ["ver"],
     tarefas: ["ver", "criar", "editar"],
+    fluxos: ["ver"],
     kanban: ["ver", "editar"],
     conversas: ["ver"],
     handoffs: ["ver", "editar"],
@@ -121,6 +127,7 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
     clientes: ["ver", "editar"],
     oportunidades: ["ver", "criar", "editar"],
     tarefas: ["ver", "criar", "editar"],
+    fluxos: ["ver"],
     conversas: ["ver"],
     handoffs: ["ver", "criar"],
     "minha-conta": ["ver"],
@@ -150,13 +157,11 @@ export function modulosDoPapel(papel: Papel): { modulo: Modulo; acoes: readonly 
   }));
 }
 
-/* ────────────────────────────────────────────────────────────────
- * Modelo de acesso por telas (mesma abordagem do Flow63/Pedrin0405):
- * cada cargo possui uma lista de rotas que pode visualizar. A matriz
- * é editável pela tela de Gestão de Acessos e é a base da navegação,
- * da proteção de rotas e do critério de segregação de telas.
- * ──────────────────────────────────────────────────────────────── */
-
+/*
+ * Modelo de acesso por telas.
+ * Cada cargo possui uma lista de rotas que pode visualizar; a matriz é editável pela
+ * tela de Gestão de Acessos e é a base da navegação, proteção de rotas e segregação de telas.
+ */
 export type GrupoRota = "principal" | "operacao" | "gestao" | "conta" | "portal";
 
 export type RotaDoSistema = {
@@ -172,6 +177,7 @@ export const ROTAS_SISTEMA: readonly RotaDoSistema[] = [
   { rota: "/oportunidades", label: "Oportunidades", grupo: "principal", modulo: "oportunidades" },
   { rota: "/tarefas", label: "Tarefas", grupo: "principal", modulo: "tarefas" },
   { rota: "/mensagens", label: "Conversas", grupo: "principal", modulo: "conversas" },
+  { rota: "/fluxos", label: "Fluxos", grupo: "operacao", modulo: "fluxos" },
   { rota: "/kanban", label: "Kanban", grupo: "operacao", modulo: "kanban" },
   { rota: "/handoffs", label: "Handoffs", grupo: "operacao", modulo: "handoffs" },
   { rota: "/vendedores", label: "Corretores", grupo: "gestao", modulo: "corretores" },
@@ -189,15 +195,8 @@ export const GRUPO_ROTAS_LABEL: Record<GrupoRota, string> = {
   portal: "Portal",
 };
 
-/**
- * Rotas padrão de cada cargo, derivadas da matriz de permissões por módulo.
- * A rota do portal é exclusiva do cliente (equipe é redirecionada pelo proxy).
- */
 export function rotasPadraoDoPapel(papel: Papel): string[] {
-  return ROTAS_SISTEMA.filter(
-    (rota) =>
-      (rotasDessaRotaPermitida(papel, rota))
-  ).map((rota) => rota.rota);
+  return ROTAS_SISTEMA.filter((rota) => rotasDessaRotaPermitida(papel, rota)).map((rota) => rota.rota);
 }
 
 function rotasDessaRotaPermitida(papel: Papel, rota: RotaDoSistema): boolean {

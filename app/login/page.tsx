@@ -110,8 +110,14 @@ export default function LoginPage() {
         <div className="login-grid absolute inset-0" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_90%_at_50%_-10%,rgba(37,99,235,0.12),transparent_60%)]" />
         <div className="login-blob -top-[12%] left-[-10%] h-[420px] w-[420px] bg-sky-400/25" />
-        <div className="login-blob -bottom-[14%] right-[-8%] h-[460px] w-[460px] bg-blue-500/25" style={{ animationDelay: "-5s" }} />
-        <div className="login-blob left-[38%] top-[52%] h-[300px] w-[300px] bg-[var(--accent)]/10" style={{ animationDelay: "-10s" }} />
+        <div
+          className="login-blob -bottom-[14%] right-[-8%] h-[460px] w-[460px] bg-blue-500/25"
+          style={{ animationDelay: "-5s" }}
+        />
+        <div
+          className="login-blob left-[38%] top-[52%] h-[300px] w-[300px] bg-[var(--accent)]/10"
+          style={{ animationDelay: "-10s" }}
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)] via-transparent to-transparent" />
       </div>
 
@@ -143,11 +149,13 @@ export default function LoginPage() {
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">
             Entrar na sua conta
           </h2>
+
           {erro && (
             <div className="animate-slide-down mt-3 rounded-lg border border-[var(--danger-border)] bg-[var(--danger-light)] px-3 py-2 text-xs text-[var(--danger)]">
               {erro}
             </div>
           )}
+
           <form onSubmit={entrar} className="mt-4 space-y-3">
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
@@ -165,6 +173,7 @@ export default function LoginPage() {
                 />
               </div>
             </label>
+
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
                 Senha
@@ -193,6 +202,7 @@ export default function LoginPage() {
                 </button>
               </div>
             </label>
+
             <button
               type="submit"
               disabled={carregando || !email || !senha}
@@ -220,6 +230,7 @@ export default function LoginPage() {
             <p className="text-xs font-medium text-[var(--text-secondary)]">
               Você é cliente? Acesse pelo link de convite
             </p>
+
             <form onSubmit={enviarLink} className="mt-2 flex gap-2">
               <div className="relative flex-1">
                 <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
@@ -231,6 +242,7 @@ export default function LoginPage() {
                   className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] shadow-sm outline-none placeholder:text-[var(--text-muted)] transition-all hover:border-[var(--border-strong)] focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
                 />
               </div>
+
               <button
                 type="submit"
                 disabled={gerandoLink || !emailLink}
@@ -243,6 +255,7 @@ export default function LoginPage() {
                 )}
               </button>
             </form>
+
             {linkGerado && (
               <div className="animate-slide-down mt-3 rounded-lg border border-[var(--success-border)] bg-[var(--success-light)] px-3 py-2.5 text-xs">
                 <p className="mb-1 font-medium text-[var(--success)]">

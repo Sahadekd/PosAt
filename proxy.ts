@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { obterSessao, criarCookieSessao } from "@/lib/auth/sessao";
+import { criarCookieSessao, obterSessao } from "@/lib/auth/sessao";
 import type { Papel } from "@/core/domain/papeis";
 import { rotasPermitidas } from "@/lib/rbac/role-permissoes";
 
@@ -36,9 +36,6 @@ export function proxy(request: NextRequest) {
   }
 
   return obterSessao(request.headers.get("cookie")).then(async (sessao) => {
-    // Durante o desenvolvimento, a home principal é a do desenvolvedor:
-    // cria a sessão de dev quando não existe e sobrepõe sessões de cliente
-    // remanescentes. Em produção isso nunca acontece.
     if (DEV) {
       if (!sessao || sessao.papel === "cliente") {
         const cookie = await criarCookieSessao(USUARIO_DEV);
@@ -69,9 +66,6 @@ export function proxy(request: NextRequest) {
       return redirecionar(request, "/");
     }
 
-    // Segregação por matriz de acessos: cargos sem permissão para a rota
-    // são redirecionados para a visão geral (a coluna "Desenvolvedor" é
-    // protegida, portanto nunca é bloqueada por aqui).
     if (!rotaPermitida(papel, pathname)) {
       return redirecionar(request, "/");
     }
