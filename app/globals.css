@@ -131,6 +131,9 @@
 [data-tooltip] {
   position: relative;
 }
+.sidebar-handle[data-tooltip] {
+  position: absolute;
+}
 [data-tooltip]:hover::after {
   content: attr(data-tooltip);
   position: absolute;
@@ -192,6 +195,14 @@ button, a, input, select, textarea {
 }
 .animate-slide-right {
   animation: slideRight 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideLeft {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.animate-slide-left {
+  animation: slideLeft 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 @keyframes toastIn {

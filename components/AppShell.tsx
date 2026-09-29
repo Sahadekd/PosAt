@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   Users,
@@ -16,39 +16,60 @@ import {
   KanbanSquare,
   Store,
   Smartphone,
-  PanelLeftClose,
-  PanelLeftOpen,
+  ChevronsLeft,
+  ChevronsRight,
   ChevronRight,
+  ChevronDown,
+  ShieldCheck,
+  UserCircle2,
+  LogOut,
 } from "lucide-react";
+import {
+  PAPEL_LABEL,
+  pode,
+  type Modulo,
+  type Papel,
+} from "@/core/domain/papeis";
 
-type NavItem = { label: string; href: string; icon: typeof Users };
+type NavItem = { label: string; href: string; icon: typeof Users; modulo: Modulo };
 
 const GRUPOS: { titulo: string; itens: NavItem[] }[] = [
   {
     titulo: "Principal",
     itens: [
-      { label: "Visão geral", href: "/", icon: LayoutDashboard },
-      { label: "Clientes", href: "/clientes", icon: Users },
-      { label: "Oportunidades", href: "/oportunidades", icon: Target },
-      { label: "Tarefas", href: "/tarefas", icon: CheckSquare },
-      { label: "Conversas", href: "/mensagens", icon: MessageSquare },
+      { label: "Visão geral", href: "/", icon: LayoutDashboard, modulo: "dashboard" },
+      { label: "Clientes", href: "/clientes", icon: Users, modulo: "clientes" },
+      { label: "Oportunidades", href: "/oportunidades", icon: Target, modulo: "oportunidades" },
+      { label: "Tarefas", href: "/tarefas", icon: CheckSquare, modulo: "tarefas" },
+      { label: "Conversas", href: "/mensagens", icon: MessageSquare, modulo: "conversas" },
     ],
   },
   {
     titulo: "Operação",
     itens: [
-      { label: "Kanban", href: "/kanban", icon: KanbanSquare },
-      { label: "Handoffs", href: "/handoffs", icon: ArrowRightLeft },
+      { label: "Kanban", href: "/kanban", icon: KanbanSquare, modulo: "kanban" },
+      { label: "Handoffs", href: "/handoffs", icon: ArrowRightLeft, modulo: "handoffs" },
     ],
   },
   {
     titulo: "Gestão",
     itens: [
-      { label: "Corretores", href: "/vendedores", icon: Store },
-      { label: "WhatsApp", href: "/gestor-whatsapp", icon: Smartphone },
+      { label: "Corretores", href: "/vendedores", icon: Store, modulo: "corretores" },
+      { label: "WhatsApp", href: "/gestor-whatsapp", icon: Smartphone, modulo: "whatsapp" },
     ],
   },
+  {
+    titulo: "Conta",
+    itens: [{ label: "Meu perfil", href: "/minha-conta", icon: UserCircle2, modulo: "minha-conta" }],
+  },
 ];
+
+interface UsuarioLeve {
+  nome: string;
+  email: string;
+  papel: Papel;
+  papel_label: string;
+}
 
 const ROTA_TITULO: { match: RegExp; titulo: string; pai?: string }[] = [
   { match: /^\/clientes\/[^/]+$/, titulo: "Perfil do cliente", pai: "Clientes" },
@@ -61,6 +82,8 @@ const ROTA_TITULO: { match: RegExp; titulo: string; pai?: string }[] = [
   { match: /^\/mensagens$/, titulo: "Conversas" },
   { match: /^\/gestor-whatsapp$/, titulo: "WhatsApp" },
   { match: /^\/vendedores$/, titulo: "Corretores" },
+  { match: /^\/minha-conta$/, titulo: "Meu perfil", pai: "Conta" },
+  { match: /^\/acessos$/, titulo: "Acessos e permissões", pai: "Conta" },
 ];
 
 function tituloDaRota(pathname: string) {
@@ -73,10 +96,21 @@ function isAtiva(href: string, pathname: string) {
   return pathname.startsWith(href);
 }
 
+function iniciais(nome: string): string {
+  const partes = nome.trim().split(/\s+/);
+  const primeira = partes[0]?.[0] ?? "";
+  const ultima = partes.length > 1 ? partes[partes.length - 1][0] : "";
+  return (primeira + ultima).toUpperCase();
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [colapsada, setColapsada] = useState(false);
   const [menuAberto, setMenuAberto] = useState(false);
+  const [menuPerfil, setMenuPerfil] = useState(false);
+  const [usuario, setUsuario] = useState<UsuarioLeve | null>(null);
+  const [carregado, setCarregado] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -91,18 +125,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [colapsada]);
 
   useEffect(() => {
-    const t = setTimeout(() => setMenuAberto(false), 0);
+    const t = setTimeout(() => {
+      setMenuAberto(false);
+      setMenuPerfil(false);
+    }, 0);
     return () => clearTimeout(t);
   }, [pathname]);
 
+  useEffect(() => {
+    let ativo = true;
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((dados) => {
+        if (ativo) setUsuario(dados.usuario ?? null);
+      })
+      .catch(() => {
+        if (ativo) setUsuario(null);
+      })
+      .finally(() => {
+        if (ativo) setCarregado(true);
+      });
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  if (pathname === "/login" || pathname.startsWith("/portal")) {
+    return <div className="min-h-screen">{children}</div>;
+  }
+
   const { titulo, pai } = tituloDaRota(pathname);
 
+  function podeVer(item: NavItem): boolean {
+    if (!usuario) return false;
+    return pode(usuario.papel, item.modulo, "ver");
+  }
+
+  const gruposVisiveis = GRUPOS.map((grupo) => ({
+    ...grupo,
+    itens: grupo.itens.filter(podeVer),
+  })).filter((grupo) => grupo.itens.length > 0);
+
+  async function sair() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
+
   return (
-    <div className={`min-h-screen transition-[padding] duration-200 ${colapsada ? "lg:pl-[72px]" : "lg:pl-[248px]"}`}>
+    <div className={`min-h-screen transition-[padding] duration-200 ${colapsada ? "lg:pl-0" : "lg:pl-[248px]"}`}>
       {/* ─── Sidebar desktop ─── */}
       <aside
-        className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-[var(--border)] bg-[var(--side)] transition-[width] duration-200 lg:flex ${
-          colapsada ? "w-[72px]" : "w-[248px]"
+        className={`fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-[var(--border)] bg-[var(--side)] transition-transform duration-200 lg:flex ${
+          colapsada ? "-translate-x-full" : "translate-x-0"
         }`}
       >
         {/* Logo */}
@@ -124,9 +199,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
+        {/* Segurador da sidebar: aba presa à borda direita (fora da costura), desliza junto e permanece 100% visível na borda da tela quando recolhida */}
+        <button
+          type="button"
+          onClick={() => setColapsada((v) => !v)}
+          aria-label={colapsada ? "Expandir menu" : "Recolher menu"}
+          aria-expanded={!colapsada}
+          data-tooltip={colapsada ? "Expandir menu" : "Recolher menu"}
+          className="sidebar-handle absolute right-[-25px] top-1/2 z-30 flex h-12 w-6 -translate-y-1/2 flex-col items-center justify-center rounded-r-lg border border-[var(--border)] bg-[var(--side)] text-slate-400 shadow-md transition-colors hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
+        >
+          {colapsada ? (
+            <ChevronsRight className="h-4 w-4" />
+          ) : (
+            <ChevronsLeft className="h-4 w-4" />
+          )}
+        </button>
+
         {/* Nav */}
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 scroll-thin">
-          {GRUPOS.map((grupo) => (
+          {gruposVisiveis.map((grupo) => (
             <div key={grupo.titulo}>
               {!colapsada && (
                 <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
@@ -160,22 +251,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
           ))}
-        </nav>
 
-        {/* Rodapé da sidebar */}
-        <div className="border-t border-[var(--border)] p-3">
-          <button
-            onClick={() => setColapsada((v) => !v)}
-            data-tooltip={colapsada ? "Expandir" : "Recolher"}
-            aria-label={colapsada ? "Expandir menu" : "Recolher menu"}
-            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-slate-100 ${
-              colapsada ? "justify-center px-0" : ""
-            }`}
-          >
-            {colapsada ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-            {!colapsada && <span>Recolher menu</span>}
-          </button>
-        </div>
+          {usuario && (
+            <div className="pt-5">
+              {!colapsada && (
+                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                  Sessão
+                </p>
+              )}
+              <button
+                onClick={sair}
+                data-tooltip={colapsada ? "Sair" : undefined}
+                className={`flex w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-rose-300 ${
+                  colapsada ? "justify-center px-0 py-2.5" : "py-2"
+                }`}
+              >
+                <LogOut className="h-[18px] w-[18px] shrink-0" />
+                {!colapsada && <span>Sair</span>}
+              </button>
+            </div>
+          )}
+        </nav>
       </aside>
 
       {/* ─── Drawer mobile ─── */}
@@ -205,7 +301,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
             <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-              {GRUPOS.map((grupo) => (
+              {gruposVisiveis.map((grupo) => (
                 <div key={grupo.titulo}>
                   <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
                     {grupo.titulo}
@@ -232,6 +328,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   </div>
                 </div>
               ))}
+              {usuario && (
+                <div>
+                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                    Sessão
+                  </p>
+                  <button
+                    onClick={sair}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-rose-300"
+                  >
+                    <LogOut className="h-[18px] w-[18px]" />
+                    Sair
+                  </button>
+                </div>
+              )}
             </nav>
           </div>
         </div>
@@ -261,15 +371,90 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          <div className="ml-auto flex items-center gap-2 sm:gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--inset)] p-1 pl-2.5">
-              <span className="hidden text-xs font-medium text-[var(--text-secondary)] min-[380px]:block">
-                Equipe PosAt
-              </span>
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-[11px] font-bold text-white">
-                EQ
-              </span>
-            </div>
+          {/* Usuário: chip abre menu do perfil */}
+          <div className="relative ml-auto flex items-center">
+            {usuario ? (
+              <button
+                onClick={() => setMenuPerfil((v) => !v)}
+                aria-label="Perfil do usuário"
+                aria-expanded={menuPerfil}
+                className="flex items-center gap-1 rounded-full border border-[var(--border)] bg-[var(--inset)] p-1 pl-2.5 transition-colors hover:border-[var(--accent-border)]"
+              >
+                <span className="hidden text-right text-xs leading-tight min-[380px]:block">
+                  <span className="block max-w-[140px] truncate font-medium text-[var(--text-secondary)]">
+                    {usuario.nome}
+                  </span>
+                  <span className="block pr-1 text-[10px] text-[var(--text-muted)]">
+                    {usuario.papel_label}
+                  </span>
+                </span>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-[11px] font-bold text-white">
+                  {iniciais(usuario.nome)}
+                </span>
+                <ChevronDown
+                  className={`mr-0.5 h-3.5 w-3.5 text-[var(--text-muted)] transition-transform ${menuPerfil ? "rotate-180" : ""}`}
+                />
+              </button>
+            ) : (
+              <div className="flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--inset)] p-1 pl-2.5">
+                <span className="hidden text-xs font-medium text-[var(--text-muted)] min-[380px]:block">
+                  {carregado ? "Bem-vindo" : "Carregando…"}
+                </span>
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-[11px] font-bold text-white">
+                  ?
+                </span>
+              </div>
+            )}
+
+            {menuPerfil && usuario && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuPerfil(false)} />
+                <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--side)] shadow-2xl">
+                  {/* Identidade */}
+                  <div className="flex items-center gap-3 p-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white">
+                      {iniciais(usuario.nome)}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-[var(--text-primary)]">
+                        {usuario.nome}
+                      </p>
+                      <p className="truncate text-xs text-[var(--text-muted)]">{usuario.email}</p>
+                    </div>
+                  </div>
+                  <div className="px-3 pb-3">
+                    <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--accent-border)] bg-[var(--accent-light)] px-2.5 py-0.5 text-[11px] font-semibold text-[var(--accent)]">
+                      <ShieldCheck className="h-3 w-3" />
+                      {PAPEL_LABEL[usuario.papel]}
+                    </span>
+                  </div>
+
+                  {/* Ações */}
+                  <div className="grid gap-2 border-t border-[var(--border)] p-3">
+                    <button
+                      onClick={() => {
+                        setMenuPerfil(false);
+                        router.push("/minha-conta");
+                      }}
+                      className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-border)] hover:text-white"
+                    >
+                      <UserCircle2 className="h-4 w-4" />
+                      Meu perfil
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMenuPerfil(false);
+                        void sair();
+                      }}
+                      className="flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:bg-white/5 hover:text-rose-300"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Sair
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </header>
 
