@@ -24,6 +24,11 @@ import {
 } from "lucide-react";
 import { FluxoNo, type FluxoNode, type FluxoNodeData } from "./FluxoNo";
 import { META_NOS, TIPOS_NO_ARRAY, VARIAVEIS_TEMPLATE } from "./meta";
+import {
+  COLUNA_LARGURA,
+  organizarHorizontal,
+  estaNaVertical,
+} from "@/lib/fluxo-layout";
 import type {
   DadosNo,
   GrafoFluxo,
@@ -35,6 +40,7 @@ const nodeTypes: NodeTypes = { fluxo: FluxoNo };
 
 export interface FluxoCanvasHandle {
   limparSelecao: () => void;
+  organizar: () => void;
 }
 
 interface FluxoCanvasProps {
@@ -129,6 +135,23 @@ function paraRF(grafo: GrafoFluxo, estadosNo?: Record<string, EstadoNoExecucao>)
   });
 }
 
+function paraEdges(grafo: GrafoFluxo): Edge[] {
+  return grafo.edges.map((e) => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle,
+    label: e.label,
+    animated: e.animated,
+    style: { stroke: "var(--border-strong)", strokeWidth: 2 },
+  }));
+}
+
+// Se o grafo está na vertical (fluxos antigos), reorganiza na horizontal
+function prepararGrafo(grafo: GrafoFluxo): GrafoFluxo {
+  return estaNaVertical(grafo) ? organizarHorizontal(grafo) : grafo;
+}
+
 function paraGrafo(nodes: FluxoNode[], edges: Edge[]): GrafoFluxo {
   // Campos exclusivos de exibição que não devem ser persistidos
   const CAMPOS_DISPLAY = new Set([
@@ -210,27 +233,16 @@ function dadosPadrao(tipo: TipoNo): FluxoNodeData {
 
 export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
   function FluxoCanvas({ grafo, onChange, estadosNo, somenteLeitura, onSelecionarNo }, ref) {
+    const [grafoInicial] = useState(() => prepararGrafo(grafo));
     const [nodes, setNodes, onNodesChange] = useNodesState<FluxoNode>(
-      paraRF(grafo, estadosNo)
+      paraRF(grafoInicial, estadosNo)
     );
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(
-      grafo.edges.map((e) => ({
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        sourceHandle: e.sourceHandle,
-        label: e.label,
-        animated: e.animated,
-        style: { stroke: "var(--border-strong)", strokeWidth: 2 },
-      }))
+      paraEdges(grafoInicial)
     );
     const [noSelecionado, setNoSelecionado] = useState<string | null>(null);
     const [paletaAberta, setPaletaAberta] = useState(false);
     const grafoNotificadoRef = useRef<GrafoFluxo | null>(null);
-
-    useImperativeHandle(ref, () => ({
-      limparSelecao: () => setNoSelecionado(null),
-    }));
 
     const notificar = useCallback(
       (n: FluxoNode[], e: Edge[]) => {
@@ -240,6 +252,19 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
       },
       [onChange]
     );
+
+    useImperativeHandle(ref, () => ({
+      limparSelecao: () => setNoSelecionado(null),
+      organizar: () => {
+        const organizado = organizarHorizontal(paraGrafo(nodes, edges));
+        const mapa = new Map(organizado.nodes.map((n) => [n.id, n.position]));
+        const novos = nodes.map((n) =>
+          mapa.has(n.id) ? { ...n, position: mapa.get(n.id)! } : n
+        );
+        setNodes(novos);
+        notificar(novos, edges);
+      },
+    }));
 
     // Sincroniza quando o grafo externo muda (ex.: carregou do servidor).
     // Ignora o "eco" da própria UI para não recriar nós a cada tecla digitada
@@ -254,18 +279,15 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
         });
         return;
       }
-      setNodes(paraRF(grafo, estadosNo));
-      setEdges(
-        grafo.edges.map((e) => ({
-          id: e.id,
-          source: e.source,
-          target: e.target,
-          sourceHandle: e.sourceHandle,
-          label: e.label,
-          animated: e.animated,
-          style: { stroke: "var(--border-strong)", strokeWidth: 2 },
-        }))
-      );
+      const alvo = prepararGrafo(grafo);
+      const novos = paraRF(alvo, estadosNo);
+      const novasEdges = paraEdges(alvo);
+      setNodes(novos);
+      setEdges(novasEdges);
+      // Fluxo carregado na vertical → notifica o layout horizontal
+      if (alvo !== grafo && !somenteLeitura) {
+        notificar(novos, novasEdges);
+      }
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [grafo, estadosNo]);
 
@@ -314,9 +336,17 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
       (tipo: TipoNo) => {
         const id = novoId(tipo.slice(0, 3));
         const dados = dadosPadrao(tipo);
+        // Posiciona à direita do nó atual (fluxo cresce horizontalmente)
+        const selecionado = nodes.find((n) => n.id === noSelecionado);
+        const maxX = nodes.length
+          ? Math.max(...nodes.map((n) => n.position.x))
+          : -COLUNA_LARGURA;
+        const mediaY = nodes.length
+          ? nodes.reduce((soma, n) => soma + n.position.y, 0) / nodes.length
+          : 80;
         const posicao = {
-          x: 120 + Math.random() * 240,
-          y: 80 + nodes.length * 90,
+          x: maxX + COLUNA_LARGURA,
+          y: Math.round(selecionado ? selecionado.position.y : mediaY),
         };
 
         const novos: FluxoNode[] = [
@@ -329,7 +359,7 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
         onSelecionarNo?.(id);
         setPaletaAberta(false);
       },
-      [nodes, edges, setNodes, notificar, onSelecionarNo]
+      [nodes, edges, noSelecionado, setNodes, notificar, onSelecionarNo]
     );
 
     // Persiste a posição do nó após o arraste

@@ -154,19 +154,21 @@ function NoInterno({ data, selected }: { data: FluxoNodeData; selected?: boolean
         <BadgeEstado estado={estado} />
       </div>
 
-      {/* Handles */}
+      {/* Handles: entrada à esquerda, saída à direita (fluxo horizontal) */}
       <Handle
         type="target"
-        position={Position.Top}
+        position={Position.Left}
         className="!h-2.5 !w-2.5 !border-2 !bg-[var(--border-strong)]"
         style={{ borderColor: meta.cor }}
       />
-      <Handle
-        type="source"
-        position={Position.Bottom}
-        className="!h-2.5 !w-2.5 !border-2 !bg-[var(--border-strong)]"
-        style={{ borderColor: meta.cor }}
-      />
+      {!data.condicao && (
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!h-2.5 !w-2.5 !border-2 !bg-[var(--border-strong)]"
+          style={{ borderColor: meta.cor }}
+        />
+      )}
 
       {/* Handles laterais para condição (sim/não) */}
       {data.condicao && (
@@ -176,14 +178,14 @@ function NoInterno({ data, selected }: { data: FluxoNodeData; selected?: boolean
             position={Position.Right}
             id="sim"
             className="!h-3.5 !w-3.5 !border-2"
-            style={{ background: "#34D399", borderColor: "#0B0F17", right: -7 }}
+            style={{ background: "#34D399", borderColor: "#0B0F17", right: -7, top: 31 }}
           />
           <Handle
             type="source"
             position={Position.Right}
             id="nao"
             className="!h-3.5 !w-3.5 !border-2"
-            style={{ background: "#F87171", borderColor: "#0B0F17", right: -7, marginTop: 26 }}
+            style={{ background: "#F87171", borderColor: "#0B0F17", right: -7, top: 59 }}
           />
           <span className="pointer-events-none absolute -right-1 top-[26px] text-[9px] font-bold text-[#34D399]">
             sim
