@@ -3,42 +3,86 @@ import { Cliente, DashboardStats, FiltrosCliente } from "../../domain/entities/t
 import { supabaseAdmin } from "@/lib/supabase-admin";
 import { storageFallback } from "@/lib/storage-fallback";
 
+// Joins embutidos do PostgREST. Podem falhar (PGRST200) em bancos cujas
+// FKs de interacoes/tarefas/handoffs não existem — nesses casos o
+// repository degrada para select simples e anexa as pessoas manualmente.
+const SELECT_COM_JOINS = `
+  *,
+  pessoa:pessoas(*),
+  interacoes:interacoes(*),
+  tarefas:tarefas_pos_atendimento(*),
+  handoffs:handoffs(*)
+`;
+
 export class ClienteRepository implements IClienteRepository {
+  private queryListagem(select: string, filtros?: FiltrosCliente) {
+    let query = supabaseAdmin!
+      .from("clientes")
+      .select(select)
+      .order("atualizado_em", { ascending: false });
+
+    if (filtros?.finalidade && filtros.finalidade !== "todas") {
+      query = query.eq("finalidade_principal", filtros.finalidade);
+    }
+    if (filtros?.status && filtros.status !== "todos") {
+      query = query.eq("status", filtros.status);
+    }
+    if (filtros?.regiao && filtros.regiao !== "todas") {
+      query = query.eq("regiao_interesse", filtros.regiao);
+    }
+    if (filtros?.confianca && filtros.confianca !== "todas") {
+      query = query.eq("nivel_confianca", filtros.confianca);
+    }
+    if (filtros?.completude_maxima) {
+      const max = parseInt(filtros.completude_maxima, 10);
+      if (!isNaN(max)) {
+        query = query.lte("indice_completude", max);
+      }
+    }
+
+    return query;
+  }
+
+  // Anexa a pessoa a clientes buscados sem join embutido
+  private async anexarPessoas(
+    clientes: Array<Record<string, unknown>>
+  ): Promise<Cliente[]> {
+    const pids = [
+      ...new Set(clientes.map((c) => c.pessoa_id).filter(Boolean)),
+    ] as string[];
+    let pessoas: Array<Record<string, unknown>> = [];
+    if (pids.length && supabaseAdmin) {
+      const { data } = await supabaseAdmin
+        .from("pessoas")
+        .select("*")
+        .in("id", pids);
+      pessoas = (data ?? []) as Array<Record<string, unknown>>;
+    }
+    const porId = new Map(pessoas.map((p) => [p.id as string, p]));
+    return clientes.map((c) => ({
+      ...c,
+      pessoa: porId.get(c.pessoa_id as string) ?? null,
+    })) as unknown as Cliente[];
+  }
+
   async findAll(filtros?: FiltrosCliente): Promise<Cliente[]> {
     if (supabaseAdmin) {
-      let query = supabaseAdmin
-        .from("clientes")
-        .select(`
-          *,
-          pessoa:pessoas(*),
-          interacoes:interacoes(*),
-          tarefas:tarefas_pos_atendimento(*),
-          handoffs:handoffs(*)
-        `)
-        .order("atualizado_em", { ascending: false });
+      const { data, error } = await this.queryListagem(SELECT_COM_JOINS, filtros);
+      let items: Cliente[] | null = null;
 
-      if (filtros?.finalidade && filtros.finalidade !== "todas") {
-        query = query.eq("finalidade_principal", filtros.finalidade);
-      }
-      if (filtros?.status && filtros.status !== "todos") {
-        query = query.eq("status", filtros.status);
-      }
-      if (filtros?.regiao && filtros.regiao !== "todas") {
-        query = query.eq("regiao_interesse", filtros.regiao);
-      }
-      if (filtros?.confianca && filtros.confianca !== "todas") {
-        query = query.eq("nivel_confianca", filtros.confianca);
-      }
-      if (filtros?.completude_maxima) {
-        const max = parseInt(filtros.completude_maxima, 10);
-        if (!isNaN(max)) {
-          query = query.lte("indice_completude", max);
+      if (!error && data) {
+        items = data as unknown as Cliente[];
+      } else {
+        // Join indisponível (FK ausente) — busca plana e anexa pessoas
+        const retry = await this.queryListagem("*", filtros);
+        if (!retry.error && retry.data) {
+          items = await this.anexarPessoas(
+            retry.data as unknown as Array<Record<string, unknown>>
+          );
         }
       }
 
-      const { data, error } = await query;
-      if (!error && data) {
-        let items = data as unknown as Cliente[];
+      if (items) {
         if (filtros?.busca) {
           const termo = filtros.busca.toLowerCase();
           items = items.filter(
@@ -54,7 +98,7 @@ export class ClienteRepository implements IClienteRepository {
       }
     }
 
-    const fallbackItems = storageFallback.getClientes(filtros as any);
+    const fallbackItems = storageFallback.getClientes(filtros);
     return fallbackItems as unknown as Cliente[];
   }
 
@@ -62,18 +106,22 @@ export class ClienteRepository implements IClienteRepository {
     if (supabaseAdmin) {
       const { data, error } = await supabaseAdmin
         .from("clientes")
-        .select(`
-          *,
-          pessoa:pessoas(*),
-          interacoes:interacoes(*),
-          tarefas:tarefas_pos_atendimento(*),
-          handoffs:handoffs(*)
-        `)
+        .select(SELECT_COM_JOINS)
         .eq("id", id)
         .single();
 
       if (!error && data) {
         return data as unknown as Cliente;
+      }
+
+      // Sem joins (PGRST200 quando FKs não existem no banco)
+      const plano = await supabaseAdmin
+        .from("clientes")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (!plano.error && plano.data) {
+        return (await this.anexarPessoas([plano.data]))[0] ?? null;
       }
     }
 
@@ -110,21 +158,17 @@ export class ClienteRepository implements IClienteRepository {
           proxima_acao: data.proxima_acao ?? null,
           proxima_acao_em: data.proxima_acao_em ?? null,
         })
-        .select(`
-          *,
-          pessoa:pessoas(*),
-          interacoes:interacoes(*),
-          tarefas:tarefas_pos_atendimento(*),
-          handoffs:handoffs(*)
-        `)
+        .select("*")
         .single();
 
       if (!error && created) {
-        return created as unknown as Cliente;
+        return (await this.anexarPessoas([created]))[0];
       }
     }
 
-    const fallbackCreated = storageFallback.addCliente(data as any);
+    const fallbackCreated = storageFallback.addCliente(
+      data as unknown as Parameters<typeof storageFallback.addCliente>[0]
+    );
     return fallbackCreated as unknown as Cliente;
   }
 
@@ -137,21 +181,18 @@ export class ClienteRepository implements IClienteRepository {
           atualizado_em: new Date().toISOString(),
         })
         .eq("id", id)
-        .select(`
-          *,
-          pessoa:pessoas(*),
-          interacoes:interacoes(*),
-          tarefas:tarefas_pos_atendimento(*),
-          handoffs:handoffs(*)
-        `)
+        .select("*")
         .single();
 
       if (!error && updated) {
-        return updated as unknown as Cliente;
+        return (await this.anexarPessoas([updated]))[0] ?? null;
       }
     }
 
-    const fallbackUpdated = storageFallback.updateCliente(id, data as any);
+    const fallbackUpdated = storageFallback.updateCliente(
+      id,
+      data as unknown as Parameters<typeof storageFallback.updateCliente>[1]
+    );
     return (fallbackUpdated as unknown as Cliente) || null;
   }
 

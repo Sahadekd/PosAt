@@ -1,5 +1,6 @@
 import { IFluxoRepository } from "../ports/out/repositories";
 import { Fluxo, FluxoExecucao, FiltrosFluxo, GrafoFluxo } from "../domain/entities/fluxo";
+import { supabaseAdmin } from "@/lib/supabase-admin";
 
 export class ListarFluxosUseCase {
   constructor(private readonly fluxoRepo: IFluxoRepository) {}
@@ -191,7 +192,7 @@ export class AplicarTemplateUseCase {
           cliente_id: clienteId,
           status: "ativa",
           no_atual_id: gatilho?.id ?? null,
-          no_atual_estado: "em_execucao",
+          no_atual_estado: "pendente",
           proxima_execucao_em: new Date().toISOString(),
           origem: params.iniciadoPor ? "manual" : "automatica",
           iniciada_por: params.iniciadoPor ?? null,
@@ -227,6 +228,19 @@ export class IniciarExecucaoUseCase {
       throw new Error("Fluxo não encontrado.");
     }
 
+    if (supabaseAdmin) {
+      const { data: cliente } = await supabaseAdmin
+        .from("clientes")
+        .select("id")
+        .eq("id", params.clienteId)
+        .maybeSingle();
+      if (!cliente) {
+        throw new Error(
+          "Lead não encontrado no banco. Crie o lead (nome, telefone, email) antes de iniciar o teste."
+        );
+      }
+    }
+
     const existente = await this.execucaoRepo.findAtiva(params.fluxoId, params.clienteId);
     if (existente) {
       throw new Error("Lead já possui execução ativa neste fluxo.");
@@ -239,7 +253,7 @@ export class IniciarExecucaoUseCase {
       cliente_id: params.clienteId,
       status: "ativa",
       no_atual_id: gatilho?.id ?? null,
-      no_atual_estado: "em_execucao",
+      no_atual_estado: "pendente",
       proxima_execucao_em: new Date().toISOString(),
       origem: "manual",
       iniciada_por: params.iniciadoPor ?? null,

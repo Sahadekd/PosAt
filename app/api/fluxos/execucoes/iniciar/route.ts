@@ -3,9 +3,9 @@ import { z } from "zod";
 import { iniciarExecucaoUseCase } from "@/core/container";
 
 const iniciarSchema = z.object({
-  fluxoId: z.string().uuid(),
-  clienteId: z.string().uuid(),
-  iniciadoPor: z.string().uuid().optional().nullable(),
+  fluxoId: z.string().min(1),
+  clienteId: z.string().min(1),
+  iniciadoPor: z.string().min(1).optional().nullable(),
 });
 
 // Inicia uma execução do fluxo para um lead (usado para testar o fluxo)
