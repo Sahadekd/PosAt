@@ -197,7 +197,6 @@ export class ExecutarFluxoUseCase {
     no: NoFluxo,
     contexto: ContextoLead
   ): Promise<void> {
-    const grafo = fluxo.grafo;
     const agora = new Date().toISOString();
 
     // Registra início do nó
@@ -869,9 +868,4 @@ export class ProcessarAgendamentosUseCase {
 
     return { processadas, erros };
   }
-}
-
-// Helper para acao_interna (evita refetch do fluxo)
-function fluxoFromExecucao(exec: FluxoExecucao): Fluxo {
-  return exec.fluxo as Fluxo;
 }

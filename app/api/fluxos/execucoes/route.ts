@@ -3,7 +3,6 @@ import { z } from "zod";
 import {
   listarExecucoesUseCase,
   aplicarTemplateUseCase,
-  fluxoExecucaoRepo,
 } from "@/core/container";
 
 export async function GET(request: NextRequest) {

@@ -2,6 +2,89 @@
 -- Construtor visual de acompanhamento/relacionamento com leads.
 -- Idempotente (create/alter only) — não apaga dados existentes.
 
+create extension if not exists "pgcrypto";
+
+-- Dependências mínimas para permitir executar esta migration isoladamente.
+do $$
+begin
+  if not exists (select 1 from pg_type where typname = 'origem_pessoa') then
+    create type origem_pessoa as enum (
+      'crm', 'formulario', 'whatsapp', 'site', 'supabase', 'planilha', 'manual', 'outro'
+    );
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'status_relacionamento') then
+    create type status_relacionamento as enum (
+      'novo_lead', 'em_qualificacao', 'em_negociacao', 'convertido',
+      'handoff_pendente', 'onboarding', 'pos_venda', 'cliente_ativo',
+      'cliente_inativo', 'reativacao', 'sem_resposta', 'encerrado'
+    );
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'finalidade_cliente') then
+    create type finalidade_cliente as enum (
+      'primeiro_imovel', 'moradia', 'investimento', 'possivel_investidor',
+      'upgrade', 'segunda_residencia', 'compra_para_familiar', 'locacao',
+      'imovel_comercial', 'cliente_recorrente', 'potencial_indicacao',
+      'nao_identificado'
+    );
+  end if;
+
+  if not exists (select 1 from pg_type where typname = 'nivel_classificacao') then
+    create type nivel_classificacao as enum (
+      'alta', 'media', 'baixa', 'revisao_necessaria'
+    );
+  end if;
+end $$;
+
+create table if not exists pessoas (
+  id uuid primary key default gen_random_uuid(),
+  nome text,
+  telefone text,
+  email text,
+  documento text,
+  origem origem_pessoa not null default 'manual',
+  id_externo text,
+  dados_originais jsonb not null default '{}'::jsonb,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+
+create table if not exists clientes (
+  id uuid primary key default gen_random_uuid(),
+  pessoa_id uuid not null references pessoas(id) on delete cascade,
+  status status_relacionamento not null default 'novo_lead',
+  finalidade_principal finalidade_cliente not null default 'nao_identificado',
+  finalidades_secundarias finalidade_cliente[] not null default '{}',
+  regiao_interesse text,
+  cidade_interesse text,
+  bairro_interesse text,
+  tipo_imovel text,
+  padrao_imovel text,
+  valor_minimo numeric(14, 2),
+  valor_maximo numeric(14, 2),
+  prazo_compra text,
+  forma_pagamento text,
+  precisa_financiamento boolean,
+  ja_possui_imovel boolean,
+  e_investidor_confirmado boolean not null default false,
+  indice_completude numeric(5, 2) not null default 0,
+  nivel_confianca nivel_classificacao not null default 'baixa',
+  campos_faltantes text[] not null default '{}',
+  sinais_classificacao text[] not null default '{}',
+  responsavel_id uuid,
+  ultima_interacao_em timestamptz,
+  proxima_acao text,
+  proxima_acao_em timestamptz,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now(),
+  constraint valor_minimo_nao_negativo check (valor_minimo is null or valor_minimo >= 0),
+  constraint valor_maximo_nao_negativo check (valor_maximo is null or valor_maximo >= 0),
+  constraint faixa_valor_valida check (
+    valor_minimo is null or valor_maximo is null or valor_minimo <= valor_maximo
+  )
+);
+
 -- ============================================================
 -- ENUMS
 -- ============================================================
@@ -106,6 +189,16 @@ begin
   end if;
 end $$;
 
+create or replace function atualizar_atualizado_em()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.atualizado_em = now();
+  return new;
+end;
+$$;
+
 -- ============================================================
 -- FLUXOS (definição / template)
 -- ============================================================
@@ -144,11 +237,20 @@ create index if not exists fluxos_status_idx on fluxos(status);
 create index if not exists fluxos_template_idx on fluxos(e_template) where e_template = true;
 create index if not exists fluxos_responsavel_idx on fluxos(responsavel_id);
 
-create trigger fluxos_atualizado_em
-before update on fluxos
-for each row
-when (pg_trigger_depth() < 1)
-execute function atualizar_atualizado_em();
+do $$
+begin
+  if not exists (
+    select 1 from pg_trigger
+    where tgname = 'fluxos_atualizado_em'
+      and tgrelid = 'fluxos'::regclass
+  ) then
+    create trigger fluxos_atualizado_em
+    before update on fluxos
+    for each row
+    when (pg_trigger_depth() < 1)
+    execute function atualizar_atualizado_em();
+  end if;
+end $$;
 
 -- ============================================================
 -- EXECUÇÕES DE FLUXO (instância por lead)
@@ -202,11 +304,20 @@ on fluxo_execucoes(proxima_execucao_em)
 where proxima_execucao_em is not null
   and status = 'ativa';
 
-create trigger fluxo_execucoes_atualizado_em
-before update on fluxo_execucoes
-for each row
-when (pg_trigger_depth() < 1)
-execute function atualizar_atualizado_em();
+do $$
+begin
+  if not exists (
+    select 1 from pg_trigger
+    where tgname = 'fluxo_execucoes_atualizado_em'
+      and tgrelid = 'fluxo_execucoes'::regclass
+  ) then
+    create trigger fluxo_execucoes_atualizado_em
+    before update on fluxo_execucoes
+    for each row
+    when (pg_trigger_depth() < 1)
+    execute function atualizar_atualizado_em();
+  end if;
+end $$;
 
 -- ============================================================
 -- EXECUÇÕES DE NÓ (linha do tempo / auditoria)
