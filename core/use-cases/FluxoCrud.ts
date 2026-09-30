@@ -1,6 +1,5 @@
 import { IFluxoRepository } from "../ports/out/repositories";
-import { Fluxo, FluxoExecucao, FiltrosFluxo, GrafoFluxo } from "../domain/entities/fluxo";
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { Fluxo, FiltrosFluxo, GrafoFluxo } from "../domain/entities/fluxo";
 
 export class ListarFluxosUseCase {
   constructor(private readonly fluxoRepo: IFluxoRepository) {}
@@ -192,7 +191,7 @@ export class AplicarTemplateUseCase {
           cliente_id: clienteId,
           status: "ativa",
           no_atual_id: gatilho?.id ?? null,
-          no_atual_estado: "pendente",
+          no_atual_estado: "em_execucao",
           proxima_execucao_em: new Date().toISOString(),
           origem: params.iniciadoPor ? "manual" : "automatica",
           iniciada_por: params.iniciadoPor ?? null,
@@ -204,66 +203,5 @@ export class AplicarTemplateUseCase {
     }
 
     return { criadas, erros };
-  }
-}
-
-export class IniciarExecucaoUseCase {
-  constructor(
-    private readonly fluxoRepo: IFluxoRepository,
-    private readonly execucaoRepo: import("../ports/out/repositories").IFluxoExecucaoRepository
-  ) {}
-
-  /**
-   * Inicia uma execução do fluxo para um lead específico.
-   * Usado para testar o fluxo com leads de teste.
-   * Ativa o fluxo automaticamente se necessário (o motor só processa fluxos ativos).
-   */
-  async execute(params: {
-    fluxoId: string;
-    clienteId: string;
-    iniciadoPor?: string | null;
-  }): Promise<FluxoExecucao> {
-    const fluxo = await this.fluxoRepo.findById(params.fluxoId);
-    if (!fluxo) {
-      throw new Error("Fluxo não encontrado.");
-    }
-
-    if (supabaseAdmin) {
-      const { data: cliente } = await supabaseAdmin
-        .from("clientes")
-        .select("id")
-        .eq("id", params.clienteId)
-        .maybeSingle();
-      if (!cliente) {
-        throw new Error(
-          "Lead não encontrado no banco. Crie o lead (nome, telefone, email) antes de iniciar o teste."
-        );
-      }
-    }
-
-    const existente = await this.execucaoRepo.findAtiva(params.fluxoId, params.clienteId);
-    if (existente) {
-      throw new Error("Lead já possui execução ativa neste fluxo.");
-    }
-
-    const gatilho = fluxo.grafo.nodes.find((n) => n.data.tipo === "gatilho");
-
-    const execucao = await this.execucaoRepo.create({
-      fluxo_id: fluxo.id,
-      cliente_id: params.clienteId,
-      status: "ativa",
-      no_atual_id: gatilho?.id ?? null,
-      no_atual_estado: "pendente",
-      proxima_execucao_em: new Date().toISOString(),
-      origem: "manual",
-      iniciada_por: params.iniciadoPor ?? null,
-    });
-
-    // O motor só processa fluxos ativos — ativa para não travar o teste
-    if (fluxo.status !== "ativo") {
-      await this.fluxoRepo.update(fluxo.id, { status: "ativo" });
-    }
-
-    return execucao;
   }
 }

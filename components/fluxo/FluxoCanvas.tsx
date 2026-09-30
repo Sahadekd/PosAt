@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useEffect, forwardRef, useImperativeHandle, useRef } from "react";
+import { useCallback, useMemo, useState, useEffect, forwardRef, useImperativeHandle } from "react";
 import {
   ReactFlow,
   Background,
@@ -19,29 +19,27 @@ import "@xyflow/react/dist/style.css";
 import {
   Plus,
   Trash2,
+  MessageCircle,
+  Clock,
+  GitBranch,
+  ListTodo,
+  Bell,
+  Play,
   X,
   Sparkles,
 } from "lucide-react";
 import { FluxoNo, type FluxoNode, type FluxoNodeData } from "./FluxoNo";
 import { META_NOS, TIPOS_NO_ARRAY, VARIAVEIS_TEMPLATE } from "./meta";
-import {
-  COLUNA_LARGURA,
-  organizarHorizontal,
-  estaNaVertical,
-} from "@/lib/fluxo-layout";
 import type {
-  DadosNo,
   GrafoFluxo,
   TipoNo,
   EstadoNoExecucao,
-  NoGatilho,
 } from "@/core/domain/entities/fluxo";
 
 const nodeTypes: NodeTypes = { fluxo: FluxoNo };
 
 export interface FluxoCanvasHandle {
   limparSelecao: () => void;
-  organizar: () => void;
 }
 
 interface FluxoCanvasProps {
@@ -57,95 +55,36 @@ function novoId(prefixo: string): string {
   return `${prefixo}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
 }
 
-// Campo aninhado da UI correspondente a cada tipo de nó
-const CAMPO_POR_TIPO: Record<TipoNo, string> = {
-  gatilho: "gatilho",
-  mensagem_whatsapp: "mensagem",
-  atraso: "atraso",
-  condicao: "condicao",
-  acao_interna: "acao",
-  notificacao: "notificacao",
-};
-
-/**
- * Normaliza os dados de um nó para o formato plano do domínio
- * (`{ tipo, label, ... }`), aceitando tanto o formato plano quanto o
- * formato aninhado usado na UI (`{ label, mensagem: { tipo, ... } }`).
- */
-function normalizarDadosNo(data: Record<string, unknown>): DadosNo | null {
-  for (const [tipo, campo] of Object.entries(CAMPO_POR_TIPO)) {
-    const sub = data[campo];
-    if (sub && typeof sub === "object" && !Array.isArray(sub)) {
-      const subObj = sub as Record<string, unknown>;
-      return {
-        ...subObj,
-        tipo,
-        label: (data.label as string) ?? (subObj.label as string) ?? tipo,
-      } as unknown as DadosNo;
-    }
-  }
-  if (typeof data.tipo === "string" && data.tipo in CAMPO_POR_TIPO) {
-    return data as unknown as DadosNo;
-  }
-  return null;
-}
-
-// Descrição curta da configuração do gatilho (exibida no nó)
-function descreverGatilho(g: NoGatilho): string {
-  switch (g.gatilho) {
-    case "manual":
-      return "Disparo manual";
-    case "novo_lead":
-      return "Entrada de novo lead";
-    case "mudanca_estagio":
-      return g.estagioOrigem
-        ? `Mudança de estágio: ${g.estagioOrigem.replace(/_/g, " ")}`
-        : "Mudança de estágio";
-    case "inatividade_dias":
-      return `Inatividade de ${g.inatividadeDias ?? 15} dias`;
-    case "evento_sistema":
-      return g.evento ? `Evento: ${g.evento.replace(/_/g, " ")}` : "Evento do sistema";
-    default:
-      return "";
-  }
-}
-
 function paraRF(grafo: GrafoFluxo, estadosNo?: Record<string, EstadoNoExecucao>): RFNode<FluxoNodeData>[] {
   return grafo.nodes.map((n) => {
-    const bruto = (n.data ?? {}) as unknown as Record<string, unknown>;
-    const plano = normalizarDadosNo(bruto);
+    const tipo = n.data.tipo;
     const base: FluxoNodeData = {
-      label: (plano?.label as string) ?? (bruto.label as string) ?? "Nó",
+      label: n.data.label,
       estado: estadosNo?.[n.id],
     };
 
-    if (plano) {
-      switch (plano.tipo) {
-        case "mensagem_whatsapp":
-          base.mensagem = plano;
-          base.previewConteudo = plano.conteudo;
-          break;
-        case "gatilho":
-          base.gatilho = plano;
-          base.previewConteudo = descreverGatilho(plano);
-          break;
-        case "atraso":
-          base.atraso = plano;
-          base.previewConteudo = `Espera ${plano.quantidade} ${plano.unidade}`;
-          break;
-        case "condicao":
-          base.condicao = plano;
-          base.previewConteudo = `${plano.campo} ${plano.operador} ${plano.valor ?? ""}`.trim();
-          break;
-        case "acao_interna":
-          base.acao = plano;
-          base.previewConteudo = plano.titulo ?? plano.descricao;
-          break;
-        case "notificacao":
-          base.notificacao = plano;
-          base.previewConteudo = plano.mensagem;
-          break;
-      }
+    if (tipo === "mensagem_whatsapp") {
+      const m = n.data as Extract<typeof n.data, { tipo: "mensagem_whatsapp" }>;
+      base.previewConteudo = m.conteudo;
+      base.mensagem = m;
+    } else if (tipo === "gatilho") {
+      base.gatilho = n.data as Extract<typeof n.data, { tipo: "gatilho" }>;
+    } else if (tipo === "atraso") {
+      const a = n.data as Extract<typeof n.data, { tipo: "atraso" }>;
+      base.atraso = a;
+      base.previewConteudo = `Espera ${a.quantidade} ${a.unidade}`;
+    } else if (tipo === "condicao") {
+      const c = n.data as Extract<typeof n.data, { tipo: "condicao" }>;
+      base.condicao = c;
+      base.previewConteudo = `${c.campo} ${c.operador} ${c.valor ?? ""}`.trim();
+    } else if (tipo === "acao_interna") {
+      const a = n.data as Extract<typeof n.data, { tipo: "acao_interna" }>;
+      base.acao = a;
+      base.previewConteudo = a.titulo ?? a.descricao;
+    } else if (tipo === "notificacao") {
+      const nt = n.data as Extract<typeof n.data, { tipo: "notificacao" }>;
+      base.notificacao = nt;
+      base.previewConteudo = nt.mensagem;
     }
 
     return {
@@ -157,48 +96,15 @@ function paraRF(grafo: GrafoFluxo, estadosNo?: Record<string, EstadoNoExecucao>)
   });
 }
 
-function paraEdges(grafo: GrafoFluxo): Edge[] {
-  return grafo.edges.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    sourceHandle: e.sourceHandle,
-    label: e.label,
-    animated: e.animated,
-    style: { stroke: "var(--border-strong)", strokeWidth: 2 },
-  }));
-}
-
-// Se o grafo está na vertical (fluxos antigos), reorganiza na horizontal
-function prepararGrafo(grafo: GrafoFluxo): GrafoFluxo {
-  return estaNaVertical(grafo) ? organizarHorizontal(grafo) : grafo;
-}
-
-function paraGrafo(nodes: FluxoNode[], edges: Edge[]): GrafoFluxo {
-  // Campos exclusivos de exibição que não devem ser persistidos
-  const CAMPOS_DISPLAY = new Set([
-    "estado",
-    "previewConteudo",
-    "contadorDisparos",
-    "selecionado",
-  ]);
-
+function paraGrafo(nodes: RFNode<FluxoNodeData>[], edges: Edge[]): GrafoFluxo {
   return {
-    nodes: nodes.map((n) => {
-      const limpo: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(n.data ?? {})) {
-        if (!CAMPOS_DISPLAY.has(k)) limpo[k] = v;
-      }
-
-      // Persiste sempre no formato plano do domínio ({ tipo, label, ... })
-      const plano = normalizarDadosNo(limpo);
-
-      return {
-        id: n.id,
-        position: n.position,
-        data: (plano ?? limpo) as unknown as GrafoFluxo["nodes"][number]["data"],
-      };
-    }),
+    nodes: nodes.map((n) => ({
+      id: n.id,
+      position: n.position,
+      data: (n.data?.label
+        ? { ...n.data }
+        : { label: n.id, tipo: "notificacao" } as never) as GrafoFluxo["nodes"][number]["data"],
+    })),
     edges: edges.map((e) => ({
       id: e.id,
       source: e.source,
@@ -255,149 +161,126 @@ function dadosPadrao(tipo: TipoNo): FluxoNodeData {
 
 export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
   function FluxoCanvas({ grafo, onChange, estadosNo, somenteLeitura, onSelecionarNo }, ref) {
-    const [grafoInicial] = useState(() => prepararGrafo(grafo));
-    const [nodes, setNodes, onNodesChange] = useNodesState<FluxoNode>(
-      paraRF(grafoInicial, estadosNo)
+    const [nodes, setNodes, onNodesChange] = useNodesState<FluxoNodeData>(
+      paraRF(grafo, estadosNo)
     );
-    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(
-      paraEdges(grafoInicial)
+    const [edges, setEdges, onEdgesChange] = useEdgesState(
+      grafo.edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        label: e.label,
+        animated: e.animated,
+        style: { stroke: "var(--border-strong)", strokeWidth: 2 },
+      }))
     );
     const [noSelecionado, setNoSelecionado] = useState<string | null>(null);
     const [paletaAberta, setPaletaAberta] = useState(false);
-    const grafoNotificadoRef = useRef<GrafoFluxo | null>(null);
+
+    useImperativeHandle(ref, () => ({
+      limparSelecao: () => setNoSelecionado(null),
+    }));
+
+    // Sincroniza quando o grafo externo muda (ex.: carregou do servidor)
+    useEffect(() => {
+      setNodes(paraRF(grafo, estadosNo));
+      setEdges(
+        grafo.edges.map((e) => ({
+          id: e.id,
+          source: e.source,
+          target: e.target,
+          sourceHandle: e.sourceHandle,
+          label: e.label,
+          animated: e.animated,
+          style: { stroke: "var(--border-strong)", strokeWidth: 2 },
+        }))
+      );
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [grafo, estadosNo]);
 
     const notificar = useCallback(
-      (n: FluxoNode[], e: Edge[]) => {
-        const g = paraGrafo(n, e);
-        grafoNotificadoRef.current = g;
-        onChange(g);
+      (n: RFNode<FluxoNodeData>[], e: Edge[]) => {
+        onChange(paraGrafo(n, e));
       },
       [onChange]
     );
 
-    useImperativeHandle(ref, () => ({
-      limparSelecao: () => setNoSelecionado(null),
-      organizar: () => {
-        const organizado = organizarHorizontal(paraGrafo(nodes, edges));
-        const mapa = new Map(organizado.nodes.map((n) => [n.id, n.position]));
-        const novos = nodes.map((n) =>
-          mapa.has(n.id) ? { ...n, position: mapa.get(n.id)! } : n
-        );
-        setNodes(novos);
-        notificar(novos, edges);
-      },
-    }));
-
-    // Sincroniza quando o grafo externo muda (ex.: carregou do servidor).
-    // Ignora o "eco" da própria UI para não recriar nós a cada tecla digitada
-    // (recriação apagava a seleção/estado do painel).
-    useEffect(() => {
-      if (grafo === grafoNotificadoRef.current) {
-        // Eco local: atualiza apenas estados de execução, preservando seleção
-        setNodes((nds) => {
-          const alterado = nds.some((n) => n.data.estado !== estadosNo?.[n.id]);
-          if (!alterado) return nds;
-          return nds.map((n) => ({ ...n, data: { ...n.data, estado: estadosNo?.[n.id] } }));
-        });
-        return;
-      }
-      const alvo = prepararGrafo(grafo);
-      const novos = paraRF(alvo, estadosNo);
-      const novasEdges = paraEdges(alvo);
-      setNodes(novos);
-      setEdges(novasEdges);
-      // Fluxo carregado na vertical → notifica o layout horizontal
-      if (alvo !== grafo && !somenteLeitura) {
-        notificar(novos, novasEdges);
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [grafo, estadosNo]);
-
     const onConnect = useCallback(
       (connection: Connection) => {
-        const novas = addEdge(
-          {
-            ...connection,
-            id: novoId("e"),
-            animated: true,
-            style: { stroke: "var(--accent)", strokeWidth: 2 },
-          },
-          edges
-        );
-        setEdges(novas);
-        notificar(nodes, novas);
+        setEdges((eds) => {
+          const novas = addEdge(
+            {
+              ...connection,
+              id: novoId("e"),
+              animated: true,
+              style: { stroke: "var(--accent)", strokeWidth: 2 },
+            },
+            eds
+          );
+          notificar(nodes, novas);
+          return novas;
+        });
       },
-      [nodes, edges, setEdges, notificar]
+      [nodes, setEdges, notificar]
     );
 
     const atualizarNo = useCallback(
       (noId: string, dados: Partial<FluxoNodeData>) => {
-        const novos = nodes.map((n) =>
-          n.id === noId ? { ...n, data: { ...n.data, ...dados } } : n
-        );
-        setNodes(novos);
-        notificar(novos, edges);
+        setNodes((nds) => {
+          const novos = nds.map((n) =>
+            n.id === noId ? { ...n, data: { ...n.data, ...dados } } : n
+          );
+          notificar(novos, edges);
+          return novos;
+        });
       },
-      [nodes, edges, setNodes, notificar]
+      [edges, setNodes, notificar]
     );
 
     const excluirNo = useCallback(
       (noId: string) => {
-        const novos = nodes.filter((n) => n.id !== noId);
-        const novas = edges.filter((e) => e.source !== noId && e.target !== noId);
-        setNodes(novos);
-        setEdges(novas);
-        notificar(novos, novas);
+        setNodes((nds) => {
+          const novos = nds.filter((n) => n.id !== noId);
+          setEdges((eds) => {
+            const novas = eds.filter((e) => e.source !== noId && e.target !== noId);
+            notificar(novos, novas);
+            return novas;
+          });
+          return novos;
+        });
         setNoSelecionado(null);
         onSelecionarNo?.(null);
       },
-      [nodes, edges, setNodes, setEdges, notificar, onSelecionarNo]
+      [setNodes, setEdges, notificar, onSelecionarNo]
     );
 
     const adicionarNo = useCallback(
       (tipo: TipoNo) => {
         const id = novoId(tipo.slice(0, 3));
         const dados = dadosPadrao(tipo);
-        // Posiciona à direita do nó atual (fluxo cresce horizontalmente)
-        const selecionado = nodes.find((n) => n.id === noSelecionado);
-        const maxX = nodes.length
-          ? Math.max(...nodes.map((n) => n.position.x))
-          : -COLUNA_LARGURA;
-        const mediaY = nodes.length
-          ? nodes.reduce((soma, n) => soma + n.position.y, 0) / nodes.length
-          : 80;
         const posicao = {
-          x: maxX + COLUNA_LARGURA,
-          y: Math.round(selecionado ? selecionado.position.y : mediaY),
+          x: 120 + Math.random() * 240,
+          y: 80 + nodes.length * 90,
         };
 
-        const novos: FluxoNode[] = [
-          ...nodes,
-          { id, type: "fluxo", position: posicao, data: dados },
-        ];
-        setNodes(novos);
-        notificar(novos, edges);
+        setNodes((nds) => {
+          const novos: RFNode<FluxoNodeData>[] = [
+            ...nds,
+            { id, type: "fluxo", position: posicao, data: dados },
+          ];
+          notificar(novos, edges);
+          return novos;
+        });
         setNoSelecionado(id);
         onSelecionarNo?.(id);
         setPaletaAberta(false);
       },
-      [nodes, edges, noSelecionado, setNodes, notificar, onSelecionarNo]
-    );
-
-    // Persiste a posição do nó após o arraste
-    const onNodeDragStop = useCallback(
-      (_event: unknown, node: FluxoNode) => {
-        const novos = nodes.map((n) =>
-          n.id === node.id ? { ...n, position: node.position } : n
-        );
-        setNodes(novos);
-        notificar(novos, edges);
-      },
-      [nodes, edges, setNodes, notificar]
+      [edges, nodes.length, setNodes, notificar, onSelecionarNo]
     );
 
     const onSelectionChange = useCallback(
-      ({ nodes: selecionados }: { nodes: FluxoNode[] }) => {
+      ({ nodes: selecionados }: { nodes: RFNode<FluxoNodeData>[] }) => {
         const id = selecionados[0]?.id ?? null;
         setNoSelecionado(id);
         onSelecionarNo?.(id);
@@ -427,14 +310,13 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
 
     return (
       <div className="relative h-full w-full">
-        <ReactFlow<FluxoNode, Edge>
+        <ReactFlow
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}
           onNodesChange={somenteLeitura ? undefined : onNodesChange}
           onEdgesChange={somenteLeitura ? undefined : onEdgesChange}
           onConnect={somenteLeitura ? undefined : onConnect}
-          onNodeDragStop={somenteLeitura ? undefined : onNodeDragStop}
           onSelectionChange={onSelectionChange}
           fitView
           fitViewOptions={{ padding: 0.25 }}
@@ -483,7 +365,7 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
 
         {/* ─── Paleta de nós ─── */}
         {paletaAberta && !somenteLeitura && (
-          <div className="absolute left-3 top-14 z-20 flex max-h-[calc(100%-72px)] w-72 flex-col animate-slide-down rounded-xl border border-[var(--border)] bg-[var(--raised)] p-3 shadow-2xl">
+          <div className="absolute left-3 top-14 z-20 w-72 animate-slide-down rounded-xl border border-[var(--border)] bg-[var(--raised)] p-3 shadow-2xl">
             <div className="mb-2 flex items-center justify-between">
               <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">
                 Tipos de nó
@@ -492,7 +374,7 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <div className="scroll-thin -mr-1.5 flex-1 space-y-1.5 overflow-y-auto overscroll-contain pr-1.5">
+            <div className="space-y-1.5">
               {TIPOS_NO_ARRAY.map((tipo) => {
                 const meta = META_NOS[tipo];
                 const Icon = meta.icon;

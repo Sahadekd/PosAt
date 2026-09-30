@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   Search,
   Plus,
@@ -48,7 +47,34 @@ export default function FluxosLista() {
   const [nomeNovo, setNomeNovo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [semeando, setSemeando] = useState(false);
-  const router = useRouter();
+
+  // Garante pelo menos 1 template pronto no primeiro acesso (time-to-value)
+  useEffect(() => {
+    (async () => {
+      try {
+        const r = await fetch("/api/fluxos?e_template=true");
+        if (!r.ok) return;
+        const data = await r.json();
+        if (!data.fluxos?.length) {
+          await fetch("/api/fluxos/templates/seed", { method: "POST" });
+          carregar();
+        }
+      } catch {
+        // silencioso
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function semearTemplates() {
+    setSemeando(true);
+    try {
+      await fetch("/api/fluxos/templates/seed", { method: "POST" });
+      await carregar();
+    } finally {
+      setSemeando(false);
+    }
+  }
 
   const carregar = useCallback(async () => {
     setCarregando(true);
@@ -75,34 +101,6 @@ export default function FluxosLista() {
     return () => clearTimeout(t);
   }, [carregar, busca]);
 
-  // Garante pelo menos 1 template pronto no primeiro acesso (time-to-value)
-  useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch("/api/fluxos?e_template=true");
-        if (!r.ok) return;
-        const data = await r.json();
-        if (!data.fluxos?.length) {
-          await fetch("/api/fluxos/templates/seed", { method: "POST" });
-          await carregar();
-        }
-      } catch {
-        // silencioso
-      }
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  async function semearTemplates() {
-    setSemeando(true);
-    try {
-      await fetch("/api/fluxos/templates/seed", { method: "POST" });
-      await carregar();
-    } finally {
-      setSemeando(false);
-    }
-  }
-
   async function criarFluxo() {
     if (!nomeNovo.trim()) return;
     setErro(null);
@@ -117,7 +115,7 @@ export default function FluxosLista() {
         setErro(data.erro ?? "Erro ao criar fluxo.");
         return;
       }
-      router.push(`/fluxos/${data.fluxo.id}`);
+      window.location.href = `/fluxos/${data.fluxo.id}`;
     } catch {
       setErro("Erro de conexão.");
     }

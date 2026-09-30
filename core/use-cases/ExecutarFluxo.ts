@@ -137,7 +137,7 @@ export class ExecutarFluxoUseCase {
     const fluxo = await this.fluxoRepo.findById(execucao.fluxo_id);
     if (!fluxo || fluxo.status !== "ativo") return;
 
-    const contexto = await this.montarContexto(execucao);
+    const contexto = execucao.contexto as ContextoLead;
     const grafo = fluxo.grafo;
     const noAtualId = execucao.no_atual_id;
 
@@ -191,61 +191,13 @@ export class ExecutarFluxoUseCase {
     }
   }
 
-  /**
-   * Monta o contexto do lead combinando o contexto já salvo na execução
-   * com dados do cliente (nome, telefone, estágio), para que variáveis
-   * como {{nome}}/{{telefone}} e condições funcionem em execuções de teste.
-   */
-  private async montarContexto(execucao: FluxoExecucao): Promise<ContextoLead> {
-    const base = { ...(execucao.contexto as ContextoLead) };
-
-    if (supabaseAdmin) {
-      try {
-        const { data } = await supabaseAdmin
-          .from("clientes")
-          .select("id, status, responsavel_id, pessoa:pessoas(nome, telefone)")
-          .eq("id", execucao.cliente_id)
-          .single();
-
-        if (data) {
-          const pessoa = Array.isArray(data.pessoa) ? data.pessoa[0] : data.pessoa;
-          if (!base.nome && pessoa?.nome) base.nome = pessoa.nome;
-          if (!base.telefone && pessoa?.telefone) base.telefone = pessoa.telefone;
-          if (!base.estagio && data.status) base.estagio = data.status;
-          if (!base.responsavel && data.responsavel_id) base.responsavel = data.responsavel_id;
-        }
-      } catch {
-        // contexto é best-effort — segue com o que a execução já tem
-      }
-    }
-
-    // Normaliza para formato internacional BR (+55...) — o WAHA recebe só dígitos
-    if (base.telefone) {
-      const d = base.telefone.replace(/\D/g, "");
-      if (d) {
-        const completo = d.startsWith("55") && d.length >= 12 ? d : d.length <= 11 ? `55${d}` : d;
-        base.telefone = `+${completo}`;
-      }
-    }
-
-    // Persiste para que condições/retries futuros usem os mesmos dados
-    if (JSON.stringify(base) !== JSON.stringify(execucao.contexto ?? {})) {
-      try {
-        await this.execucaoRepo.update(execucao.id, { contexto: base });
-      } catch {
-        // best-effort
-      }
-    }
-
-    return base;
-  }
-
   private async processarNo(
     execucao: FluxoExecucao,
     fluxo: Fluxo,
     no: NoFluxo,
     contexto: ContextoLead
   ): Promise<void> {
+    const grafo = fluxo.grafo;
     const agora = new Date().toISOString();
 
     // Registra início do nó
@@ -343,7 +295,7 @@ export class ExecutarFluxoUseCase {
             break;
           }
 
-          await this.dispararMensagem(execucao, fluxo, no, noExec, conteudoFinal, telefone, contexto);
+          await this.dispararMensagem(execucao, fluxo, no, noExec, conteudoFinal, telefone);
           break;
         }
 
@@ -415,15 +367,14 @@ export class ExecutarFluxoUseCase {
     no: NoFluxo,
     noExec: FluxoNoExecucao,
     conteudo: string,
-    telefone: string,
-    contexto: ContextoLead
+    telefone: string
   ): Promise<void> {
     const sessao = await this.obterSessaoDoResponsavel(
       execucao.cliente?.responsavel_id ?? fluxo.responsavel_id
     );
 
     if (!sessao) {
-      await this.retryOuFalhar(noExec, execucao, "Nenhuma sessão WhatsApp disponível para envio.");
+      await this.falharNo(noExec, execucao, "Nenhuma sessão WhatsApp disponível para envio.");
       return;
     }
 
@@ -458,45 +409,36 @@ export class ExecutarFluxoUseCase {
         // interação é best-effort
       }
 
-      await this.avancar(execucao, fluxo, no.id, contexto);
+      await this.avancar(execucao, fluxo, no.id, execucao.contexto as ContextoLead);
     } catch (erro) {
+      const tentativas = noExec.tentativas + 1;
       const msg = erro instanceof Error ? erro.message : "Falha no envio";
-      await this.retryOuFalhar(noExec, execucao, msg);
+
+      if (tentativas >= MAX_TENTATIVAS) {
+        await this.falharNo(noExec, execucao, msg, tentativas);
+      } else {
+        // Retry com backoff
+        const backoff = new Date();
+        backoff.setMinutes(backoff.getMinutes() + tentativas * 2);
+
+        await this.execucaoRepo.atualizarNo(noExec.id, {
+          estado: "agendado",
+          tentativas,
+          erro_detalhe: msg,
+          agendado_para: backoff.toISOString(),
+        });
+        await this.execucaoRepo.update(execucao.id, {
+          no_atual_estado: "agendado",
+          proxima_execucao_em: backoff.toISOString(),
+          tentativas,
+        });
+        await this.registrarLog(execucao, "retry_agendado", {
+          noId: no.id,
+          tentativas,
+          erro: msg,
+        });
+      }
     }
-  }
-
-  // Retry com backoff; falha definitiva ao atingir MAX_TENTATIVAS
-  private async retryOuFalhar(
-    noExec: FluxoNoExecucao,
-    execucao: FluxoExecucao,
-    msg: string
-  ): Promise<void> {
-    const tentativas = noExec.tentativas + 1;
-
-    if (tentativas >= MAX_TENTATIVAS) {
-      await this.falharNo(noExec, execucao, msg, tentativas);
-      return;
-    }
-
-    const backoff = new Date();
-    backoff.setMinutes(backoff.getMinutes() + tentativas * 2);
-
-    await this.execucaoRepo.atualizarNo(noExec.id, {
-      estado: "agendado",
-      tentativas,
-      erro_detalhe: msg,
-      agendado_para: backoff.toISOString(),
-    });
-    await this.execucaoRepo.update(execucao.id, {
-      no_atual_estado: "agendado",
-      proxima_execucao_em: backoff.toISOString(),
-      tentativas,
-    });
-    await this.registrarLog(execucao, "retry_agendado", {
-      noId: noExec.no_id,
-      tentativas,
-      erro: msg,
-    });
   }
 
   private async executarAcaoInterna(
@@ -927,4 +869,9 @@ export class ProcessarAgendamentosUseCase {
 
     return { processadas, erros };
   }
+}
+
+// Helper para acao_interna (evita refetch do fluxo)
+function fluxoFromExecucao(exec: FluxoExecucao): Fluxo {
+  return exec.fluxo as Fluxo;
 }

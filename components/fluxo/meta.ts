@@ -18,7 +18,7 @@ export interface MetaNo {
   icon: LucideIcon;
   cor: string;          // cor do acento do tipo
   corLight: string;
-  raio?: number;        // raio da borda do nó (gatilho usa arredondamento maior)
+  raio?: number;        // borda arredondada extra (gatilho oval)
 }
 
 export const META_NOS: Record<TipoNo, MetaNo> = {
@@ -29,7 +29,7 @@ export const META_NOS: Record<TipoNo, MetaNo> = {
     icon: Play,
     cor: "#38BDF8",
     corLight: "rgba(56, 189, 248, 0.14)",
-    raio: 18,
+    raio: 999,
   },
   mensagem_whatsapp: {
     tipo: "mensagem_whatsapp",

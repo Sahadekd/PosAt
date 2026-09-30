@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef, useMemo } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Save,
   Play,
   Pause,
+  Copy,
   LayoutGrid,
   ListOrdered,
   RefreshCw,
@@ -19,8 +20,6 @@ import {
   SkipForward,
   Ban,
   ExternalLink,
-  UserPlus,
-  AlignHorizontalDistributeCenter,
 } from "lucide-react";
 import { FluxoCanvas, type FluxoCanvasHandle } from "./FluxoCanvas";
 import { LinhaTempoView } from "./LinhaTempoView";
@@ -48,9 +47,6 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   const [resumo, setResumo] = useState<ResumoExecucaoFluxo | null>(null);
   const [aba, setAba] = useState<Aba>("execucoes");
   const [toast, setToast] = useState<string | null>(null);
-  const [mostrarFormLead, setMostrarFormLead] = useState(false);
-  const [formLead, setFormLead] = useState({ nome: "", telefone: "", email: "" });
-  const [criandoLead, setCriandoLead] = useState(false);
   const canvasRef = useRef<FluxoCanvasHandle>(null);
 
   // Carrega fluxo
@@ -86,22 +82,15 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   }, [fluxoId]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const r = await fetch(`/api/fluxos/execucoes?fluxo_id=${fluxoId}`);
-        if (r.ok) {
-          const data = await r.json();
-          setExecucoes(data.execucoes ?? []);
-        }
-      } catch {
-        // silencioso
-      }
-    })();
-  }, [fluxoId]);
+    carregarExecucoes();
+  }, [carregarExecucoes]);
 
   // Carrega resumo da execução selecionada
   useEffect(() => {
-    if (!execucaoSel) return;
+    if (!execucaoSel) {
+      setResumo(null);
+      return;
+    }
     (async () => {
       try {
         const r = await fetch(`/api/fluxos/execucoes/${execucaoSel}`);
@@ -192,7 +181,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   }
 
   // Estados por nó da execução selecionada (destaque no canvas)
-  const estadosNo = useMemo((): Record<string, EstadoNoExecucao> | undefined => {
+  const estadosNo = useCallback((): Record<string, EstadoNoExecucao> | undefined => {
     if (!resumo) return undefined;
     const mapa: Record<string, EstadoNoExecucao> = {};
     for (const no of resumo.nos) mapa[no.no_id] = no.estado;
@@ -201,81 +190,6 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
     }
     return mapa;
   }, [resumo]);
-
-  // Cria um lead real (nome, telefone, email) e inicia o fluxo para ele
-  function normalizarTelefoneBR(raw: string): string {
-    const d = raw.replace(/\D/g, "");
-    if (!d) return "";
-    const completo = d.startsWith("55") && d.length >= 12 ? d : d.length <= 11 ? `55${d}` : d;
-    return `+${completo}`;
-  }
-
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-  async function adicionarLeadTeste() {
-    const nome = formLead.nome.trim();
-    const telefone = normalizarTelefoneBR(formLead.telefone);
-    const email = formLead.email.trim();
-    const digitos = telefone.replace(/\D/g, "");
-
-    if (!nome) {
-      mostrarToast("Informe o nome do lead.");
-      return;
-    }
-    if (digitos.length < 12) {
-      mostrarToast("Informe um telefone com DDD (ex.: 11 99999-8888).");
-      return;
-    }
-
-    setCriandoLead(true);
-    try {
-      const rc = await fetch("/api/clientes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome,
-          telefone,
-          email: email || undefined,
-          origem: "manual",
-          observacoes: "Lead criado para testar o fluxo de leads.",
-        }),
-      });
-      const dr = await rc.json().catch(() => ({}));
-      if (!rc.ok) {
-        throw new Error(
-          dr.campos
-            ? "Dados inválidos — confira nome, telefone e email."
-            : dr.erro ?? "Erro ao criar o lead."
-        );
-      }
-      const clienteId = dr.cliente?.id;
-      if (!clienteId || typeof clienteId !== "string" || !UUID_RE.test(clienteId)) {
-        throw new Error(
-          "Não foi possível salvar o lead no banco (possível email/telefone duplicado)."
-        );
-      }
-
-      const re = await fetch("/api/fluxos/execucoes/iniciar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fluxoId, clienteId }),
-      });
-      const er = await re.json().catch(() => ({}));
-      if (!re.ok) throw new Error(er.erro ?? "Erro ao iniciar execução.");
-
-      await carregarExecucoes();
-      if (er.execucao?.id) {
-        setResumo(null);
-        setExecucaoSel(er.execucao.id);
-      }
-      setFormLead({ nome: "", telefone: "", email: "" });
-      mostrarToast(`Lead "${nome}" criado e teste iniciado.`);
-    } catch (e) {
-      mostrarToast(e instanceof Error ? e.message : "Erro ao adicionar lead de teste.");
-    } finally {
-      setCriandoLead(false);
-    }
-  }
 
   if (carregando) {
     return (
@@ -364,17 +278,6 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
           </button>
         </div>
 
-        {/* Organizar nós na horizontal */}
-        <button
-          onClick={() => canvasRef.current?.organizar()}
-          disabled={modoVisao !== "grafo"}
-          title="Organizar os nós na horizontal (esquerda → direita), estilo n8n"
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-45"
-        >
-          <AlignHorizontalDistributeCenter className="h-3.5 w-3.5" />
-          Organizar
-        </button>
-
         <button
           onClick={salvar}
           disabled={!sujo || salvando}
@@ -415,14 +318,14 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                 setGrafo(g);
                 setSujo(true);
               }}
-              estadosNo={estadosNo}
+              estadosNo={estadosNo()}
               onSelecionarNo={() => {}}
             />
           ) : (
             <div className="h-full overflow-y-auto scroll-thin">
               <LinhaTempoView
                 grafo={grafo}
-                estadosNo={estadosNo}
+                estadosNo={estadosNo()}
                 noAtualId={resumo?.execucao.no_atual_id}
               />
             </div>
@@ -457,73 +360,6 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
 
           {aba === "execucoes" ? (
             <div className="flex-1 overflow-y-auto scroll-thin">
-              {/* Adicionar lead de teste */}
-              <div className="border-b border-[var(--border)] p-3">
-                {!mostrarFormLead ? (
-                  <button
-                    onClick={() => setMostrarFormLead(true)}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[var(--border-strong)] py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-                  >
-                    <UserPlus className="h-3.5 w-3.5" />
-                    Adicionar lead para teste
-                  </button>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <input
-                        value={formLead.nome}
-                        onChange={(e) => setFormLead((f) => ({ ...f, nome: e.target.value }))}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") setMostrarFormLead(false);
-                        }}
-                        placeholder="Nome *"
-                        autoFocus
-                        className="col-span-2 w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                      />
-                      <input
-                        value={formLead.telefone}
-                        onChange={(e) => setFormLead((f) => ({ ...f, telefone: e.target.value }))}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") setMostrarFormLead(false);
-                        }}
-                        placeholder="Telefone com DDD *"
-                        type="tel"
-                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                      />
-                      <input
-                        value={formLead.email}
-                        onChange={(e) => setFormLead((f) => ({ ...f, email: e.target.value }))}
-                        onKeyDown={(e) => {
-                          if (e.key === "Escape") setMostrarFormLead(false);
-                        }}
-                        placeholder="Email (opcional)"
-                        type="email"
-                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={adicionarLeadTeste}
-                        disabled={criandoLead}
-                        className="flex-1 rounded-lg bg-[var(--accent)] py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
-                      >
-                        {criandoLead ? "Criando..." : "Criar lead e iniciar teste"}
-                      </button>
-                      <button
-                        onClick={() => setMostrarFormLead(false)}
-                        disabled={criandoLead}
-                        className="rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                      >
-                        Fechar
-                      </button>
-                    </div>
-                    <p className="text-[10px] leading-snug text-[var(--text-muted)]">
-                      Use um telefone real (ex.: o seu) para receber as mensagens do fluxo pelo WhatsApp e validar o funcionamento. Crie quantos leads precisar.
-                    </p>
-                  </div>
-                )}
-              </div>
-
               {execucoes.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
                   <Users className="h-7 w-7 text-[var(--text-muted)]" />
@@ -531,7 +367,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                     Nenhum lead neste fluxo
                   </p>
                   <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                    Adicione um lead para teste acima para acompanhar a execução, ou aplique o fluxo a leads existentes.
+                    Ative o fluxo e aplique-o a um lead ou segmento para começar a acompanhar.
                   </p>
                 </div>
               ) : (
@@ -549,10 +385,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                     return (
                       <li key={exec.id}>
                         <button
-                          onClick={() => {
-                            setExecucaoSel(selecionada ? null : exec.id);
-                            setResumo(null);
-                          }}
+                          onClick={() => setExecucaoSel(selecionada ? null : exec.id)}
                           className={`w-full border-b border-[var(--border)] px-4 py-2.5 text-left transition-colors hover:bg-[var(--inset)] ${
                             selecionada ? "bg-[var(--accent-light)]" : ""
                           }`}
@@ -856,7 +689,7 @@ function ConfigAba({
             Pausar quando o lead responder
           </span>
           <span className="block text-[11px] leading-snug text-[var(--text-secondary)]">
-            Nenhuma automação &quot;pisando&quot; na conversa humana. A pausa ocorre em até 30s.
+            Nenhuma automação "pisando" na conversa humana. A pausa ocorre em até 30s.
           </span>
         </span>
       </label>

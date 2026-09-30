@@ -90,26 +90,20 @@ function NoInterno({ data, selected }: { data: FluxoNodeData; selected?: boolean
   const Icon = meta.icon;
   const estado: EstadoNoExecucao = data.estado ?? "pendente";
   const emExecucao = estado === "em_execucao";
-  const ehGatilho = Boolean(data.gatilho);
 
   return (
     <div
-      className={`relative min-w-[190px] max-w-[240px] border bg-[var(--white)] px-3 py-2.5 shadow-lg transition-all ${
-        ehGatilho ? "border-dashed" : ""
-      }`}
+      className="relative min-w-[190px] max-w-[240px] rounded-xl border bg-[var(--white)] px-3 py-2.5 shadow-lg transition-all"
       style={{
-        borderColor: selected || emExecucao || ehGatilho ? meta.cor : "var(--border)",
-        borderRadius: meta.raio ?? 12,
-        boxShadow: [
-          // Tinta de fundo do gatilho (translúcida, acompanha o tema)
-          ehGatilho ? `inset 0 0 0 999px ${meta.corLight}` : null,
-          emExecucao
-            ? `0 0 0 3px ${meta.corLight}, 0 8px 24px rgba(0,0,0,.35)`
-            : "0 8px 24px rgba(0,0,0,.28)",
-          ehGatilho ? `0 0 18px ${meta.corLight}` : null,
-        ]
-          .filter(Boolean)
-          .join(", "),
+        borderColor: selected
+          ? meta.cor
+          : emExecucao
+            ? meta.cor
+            : "var(--border)",
+        borderRadius: meta.raio ? meta.raio : undefined,
+        boxShadow: emExecucao
+          ? `0 0 0 3px ${meta.corLight}, 0 8px 24px rgba(0,0,0,.35)`
+          : "0 8px 24px rgba(0,0,0,.28)",
         opacity: estado === "pulado" ? 0.55 : 1,
       }}
       aria-label={`${meta.label}: ${data.label} — ${META_ESTADOS[estado].label}`}
@@ -117,26 +111,16 @@ function NoInterno({ data, selected }: { data: FluxoNodeData; selected?: boolean
       {/* Pulso no nó em execução */}
       {emExecucao && (
         <span
-          className="pointer-events-none absolute inset-0 animate-ping"
-          style={{
-            background: meta.corLight,
-            animationDuration: "1.6s",
-            borderRadius: "inherit",
-          }}
+          className="pointer-events-none absolute inset-0 animate-ping rounded-xl"
+          style={{ background: meta.corLight, animationDuration: "1.6s" }}
         />
       )}
 
       {/* Cabeçalho */}
       <div className="flex items-start gap-2">
         <span
-          className={`flex h-7 w-7 shrink-0 items-center justify-center ${
-            ehGatilho ? "rounded-full" : "rounded-lg"
-          }`}
-          style={
-            ehGatilho
-              ? { background: meta.cor, color: "#0B0F17" }
-              : { background: meta.corLight, color: meta.cor }
-          }
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg"
+          style={{ background: meta.corLight, color: meta.cor }}
         >
           <Icon className="h-4 w-4" />
         </span>
@@ -170,23 +154,19 @@ function NoInterno({ data, selected }: { data: FluxoNodeData; selected?: boolean
         <BadgeEstado estado={estado} />
       </div>
 
-      {/* Handles: gatilho é a entrada do fluxo (sem handle de chegada) */}
-      {!ehGatilho && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          className="!h-2.5 !w-2.5 !border-2 !bg-[var(--border-strong)]"
-          style={{ borderColor: meta.cor }}
-        />
-      )}
-      {!data.condicao && (
-        <Handle
-          type="source"
-          position={Position.Right}
-          className="!h-2.5 !w-2.5 !border-2 !bg-[var(--border-strong)]"
-          style={{ borderColor: meta.cor }}
-        />
-      )}
+      {/* Handles */}
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!h-2.5 !w-2.5 !border-2 !bg-[var(--border-strong)]"
+        style={{ borderColor: meta.cor }}
+      />
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        className="!h-2.5 !w-2.5 !border-2 !bg-[var(--border-strong)]"
+        style={{ borderColor: meta.cor }}
+      />
 
       {/* Handles laterais para condição (sim/não) */}
       {data.condicao && (
@@ -196,14 +176,14 @@ function NoInterno({ data, selected }: { data: FluxoNodeData; selected?: boolean
             position={Position.Right}
             id="sim"
             className="!h-3.5 !w-3.5 !border-2"
-            style={{ background: "#34D399", borderColor: "#0B0F17", right: -7, top: 31 }}
+            style={{ background: "#34D399", borderColor: "#0B0F17", right: -7 }}
           />
           <Handle
             type="source"
             position={Position.Right}
             id="nao"
             className="!h-3.5 !w-3.5 !border-2"
-            style={{ background: "#F87171", borderColor: "#0B0F17", right: -7, top: 59 }}
+            style={{ background: "#F87171", borderColor: "#0B0F17", right: -7, marginTop: 26 }}
           />
           <span className="pointer-events-none absolute -right-1 top-[26px] text-[9px] font-bold text-[#34D399]">
             sim

@@ -5,7 +5,6 @@
 // ============================================================
 
 import type { GrafoFluxo } from "@/core/domain/entities/fluxo";
-import { organizarHorizontal } from "./fluxo-layout";
 
 export interface TemplateFluxo {
   categoria: string;
@@ -304,8 +303,4 @@ const posProposta: TemplateFluxo = {
   },
 };
 
-// Posições são organizadas na horizontal (esquerda → direita) na exportação;
-// as coordenadas acima servem apenas como referência de ordem das ramificações.
-export const TEMPLATES_INICIAIS: TemplateFluxo[] = [posVisita, reativacao, posProposta].map(
-  (t) => ({ ...t, grafo: organizarHorizontal(t.grafo) })
-);
+export const TEMPLATES_INICIAIS: TemplateFluxo[] = [posVisita, reativacao, posProposta];
