@@ -19,12 +19,6 @@ import "@xyflow/react/dist/style.css";
 import {
   Plus,
   Trash2,
-  MessageCircle,
-  Clock,
-  GitBranch,
-  ListTodo,
-  Bell,
-  Play,
   X,
   Sparkles,
 } from "lucide-react";
@@ -96,15 +90,28 @@ function paraRF(grafo: GrafoFluxo, estadosNo?: Record<string, EstadoNoExecucao>)
   });
 }
 
-function paraGrafo(nodes: RFNode<FluxoNodeData>[], edges: Edge[]): GrafoFluxo {
+function paraGrafo(nodes: FluxoNode[], edges: Edge[]): GrafoFluxo {
+  // Campos exclusivos de exibição que não devem ser persistidos
+  const CAMPOS_DISPLAY = new Set([
+    "estado",
+    "previewConteudo",
+    "contadorDisparos",
+    "selecionado",
+  ]);
+
   return {
-    nodes: nodes.map((n) => ({
-      id: n.id,
-      position: n.position,
-      data: (n.data?.label
-        ? { ...n.data }
-        : { label: n.id, tipo: "notificacao" } as never) as GrafoFluxo["nodes"][number]["data"],
-    })),
+    nodes: nodes.map((n) => {
+      const limpo: Record<string, unknown> = {};
+      for (const [k, v] of Object.entries(n.data ?? {})) {
+        if (!CAMPOS_DISPLAY.has(k)) limpo[k] = v;
+      }
+
+      return {
+        id: n.id,
+        position: n.position,
+        data: limpo as unknown as GrafoFluxo["nodes"][number]["data"],
+      };
+    }),
     edges: edges.map((e) => ({
       id: e.id,
       source: e.source,
@@ -161,10 +168,10 @@ function dadosPadrao(tipo: TipoNo): FluxoNodeData {
 
 export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
   function FluxoCanvas({ grafo, onChange, estadosNo, somenteLeitura, onSelecionarNo }, ref) {
-    const [nodes, setNodes, onNodesChange] = useNodesState<FluxoNodeData>(
+    const [nodes, setNodes, onNodesChange] = useNodesState<FluxoNode>(
       paraRF(grafo, estadosNo)
     );
-    const [edges, setEdges, onEdgesChange] = useEdgesState(
+    const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(
       grafo.edges.map((e) => ({
         id: e.id,
         source: e.source,
@@ -200,7 +207,7 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
     }, [grafo, estadosNo]);
 
     const notificar = useCallback(
-      (n: RFNode<FluxoNodeData>[], e: Edge[]) => {
+      (n: FluxoNode[], e: Edge[]) => {
         onChange(paraGrafo(n, e));
       },
       [onChange]
@@ -265,7 +272,7 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
         };
 
         setNodes((nds) => {
-          const novos: RFNode<FluxoNodeData>[] = [
+          const novos: FluxoNode[] = [
             ...nds,
             { id, type: "fluxo", position: posicao, data: dados },
           ];
@@ -280,7 +287,7 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
     );
 
     const onSelectionChange = useCallback(
-      ({ nodes: selecionados }: { nodes: RFNode<FluxoNodeData>[] }) => {
+      ({ nodes: selecionados }: { nodes: FluxoNode[] }) => {
         const id = selecionados[0]?.id ?? null;
         setNoSelecionado(id);
         onSelecionarNo?.(id);
@@ -310,7 +317,7 @@ export const FluxoCanvas = forwardRef<FluxoCanvasHandle, FluxoCanvasProps>(
 
     return (
       <div className="relative h-full w-full">
-        <ReactFlow
+        <ReactFlow<FluxoNode, Edge>
           nodes={nodes}
           edges={edges}
           nodeTypes={nodeTypes}

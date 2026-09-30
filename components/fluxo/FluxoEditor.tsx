@@ -7,7 +7,6 @@ import {
   Save,
   Play,
   Pause,
-  Copy,
   LayoutGrid,
   ListOrdered,
   RefreshCw,
@@ -82,15 +81,22 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   }, [fluxoId]);
 
   useEffect(() => {
-    carregarExecucoes();
-  }, [carregarExecucoes]);
+    (async () => {
+      try {
+        const r = await fetch(`/api/fluxos/execucoes?fluxo_id=${fluxoId}`);
+        if (r.ok) {
+          const data = await r.json();
+          setExecucoes(data.execucoes ?? []);
+        }
+      } catch {
+        // silencioso
+      }
+    })();
+  }, [fluxoId]);
 
   // Carrega resumo da execução selecionada
   useEffect(() => {
-    if (!execucaoSel) {
-      setResumo(null);
-      return;
-    }
+    if (!execucaoSel) return;
     (async () => {
       try {
         const r = await fetch(`/api/fluxos/execucoes/${execucaoSel}`);
@@ -385,7 +391,10 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                     return (
                       <li key={exec.id}>
                         <button
-                          onClick={() => setExecucaoSel(selecionada ? null : exec.id)}
+                          onClick={() => {
+                            setExecucaoSel(selecionada ? null : exec.id);
+                            setResumo(null);
+                          }}
                           className={`w-full border-b border-[var(--border)] px-4 py-2.5 text-left transition-colors hover:bg-[var(--inset)] ${
                             selecionada ? "bg-[var(--accent-light)]" : ""
                           }`}
@@ -689,7 +698,7 @@ function ConfigAba({
             Pausar quando o lead responder
           </span>
           <span className="block text-[11px] leading-snug text-[var(--text-secondary)]">
-            Nenhuma automação "pisando" na conversa humana. A pausa ocorre em até 30s.
+            Nenhuma automação &quot;pisando&quot; na conversa humana. A pausa ocorre em até 30s.
           </span>
         </span>
       </label>
