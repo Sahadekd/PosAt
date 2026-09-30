@@ -34,6 +34,7 @@ import type {
   GrafoFluxo,
   TipoNo,
   EstadoNoExecucao,
+  NoGatilho,
 } from "@/core/domain/entities/fluxo";
 
 const nodeTypes: NodeTypes = { fluxo: FluxoNo };
@@ -89,6 +90,26 @@ function normalizarDadosNo(data: Record<string, unknown>): DadosNo | null {
   return null;
 }
 
+// Descrição curta da configuração do gatilho (exibida no nó)
+function descreverGatilho(g: NoGatilho): string {
+  switch (g.gatilho) {
+    case "manual":
+      return "Disparo manual";
+    case "novo_lead":
+      return "Entrada de novo lead";
+    case "mudanca_estagio":
+      return g.estagioOrigem
+        ? `Mudança de estágio: ${g.estagioOrigem.replace(/_/g, " ")}`
+        : "Mudança de estágio";
+    case "inatividade_dias":
+      return `Inatividade de ${g.inatividadeDias ?? 15} dias`;
+    case "evento_sistema":
+      return g.evento ? `Evento: ${g.evento.replace(/_/g, " ")}` : "Evento do sistema";
+    default:
+      return "";
+  }
+}
+
 function paraRF(grafo: GrafoFluxo, estadosNo?: Record<string, EstadoNoExecucao>): RFNode<FluxoNodeData>[] {
   return grafo.nodes.map((n) => {
     const bruto = (n.data ?? {}) as unknown as Record<string, unknown>;
@@ -106,6 +127,7 @@ function paraRF(grafo: GrafoFluxo, estadosNo?: Record<string, EstadoNoExecucao>)
           break;
         case "gatilho":
           base.gatilho = plano;
+          base.previewConteudo = descreverGatilho(plano);
           break;
         case "atraso":
           base.atraso = plano;
