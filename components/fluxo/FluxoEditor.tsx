@@ -48,7 +48,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   const [aba, setAba] = useState<Aba>("execucoes");
   const [toast, setToast] = useState<string | null>(null);
   const [mostrarFormLead, setMostrarFormLead] = useState(false);
-  const [nomeLeadTeste, setNomeLeadTeste] = useState("");
+  const [formLead, setFormLead] = useState({ nome: "", telefone: "", email: "" });
   const [criandoLead, setCriandoLead] = useState(false);
   const canvasRef = useRef<FluxoCanvasHandle>(null);
 
@@ -201,38 +201,74 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
     return mapa;
   }, [resumo]);
 
-  // Adiciona um lead de teste e inicia o fluxo para ele
+  // Cria um lead real (nome, telefone, email) e inicia o fluxo para ele
+  function normalizarTelefoneBR(raw: string): string {
+    const d = raw.replace(/\D/g, "");
+    if (!d) return "";
+    const completo = d.startsWith("55") && d.length >= 12 ? d : d.length <= 11 ? `55${d}` : d;
+    return `+${completo}`;
+  }
+
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
   async function adicionarLeadTeste() {
+    const nome = formLead.nome.trim();
+    const telefone = normalizarTelefoneBR(formLead.telefone);
+    const email = formLead.email.trim();
+    const digitos = telefone.replace(/\D/g, "");
+
+    if (!nome) {
+      mostrarToast("Informe o nome do lead.");
+      return;
+    }
+    if (digitos.length < 12) {
+      mostrarToast("Informe um telefone com DDD (ex.: 11 99999-8888).");
+      return;
+    }
+
     setCriandoLead(true);
     try {
-      const nome = nomeLeadTeste.trim() || `Lead Teste ${new Date().toLocaleTimeString("pt-BR")}`;
-      const telefone = `+55119${Math.floor(10000000 + Math.random() * 89999999)}`;
-
       const rc = await fetch("/api/clientes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           nome,
           telefone,
+          email: email || undefined,
           origem: "manual",
-          observacoes: "Lead criado para testar fluxo de leads.",
+          observacoes: "Lead criado para testar o fluxo de leads.",
         }),
       });
-      if (!rc.ok) throw new Error("Erro ao criar lead de teste.");
-      const { cliente } = await rc.json();
+      const dr = await rc.json().catch(() => ({}));
+      if (!rc.ok) {
+        throw new Error(
+          dr.campos
+            ? "Dados inválidos — confira nome, telefone e email."
+            : dr.erro ?? "Erro ao criar o lead."
+        );
+      }
+      const clienteId = dr.cliente?.id;
+      if (!clienteId || typeof clienteId !== "string" || !UUID_RE.test(clienteId)) {
+        throw new Error(
+          "Não foi possível salvar o lead no banco (possível email/telefone duplicado)."
+        );
+      }
 
       const re = await fetch("/api/fluxos/execucoes/iniciar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fluxoId, clienteId: cliente.id }),
+        body: JSON.stringify({ fluxoId, clienteId }),
       });
-      const dr = await re.json();
-      if (!re.ok) throw new Error(dr.erro ?? "Erro ao iniciar execução.");
+      const er = await re.json().catch(() => ({}));
+      if (!re.ok) throw new Error(er.erro ?? "Erro ao iniciar execução.");
 
       await carregarExecucoes();
-      setMostrarFormLead(false);
-      setNomeLeadTeste("");
-      mostrarToast(`Lead "${nome}" adicionado ao fluxo.`);
+      if (er.execucao?.id) {
+        setResumo(null);
+        setExecucaoSel(er.execucao.id);
+      }
+      setFormLead({ nome: "", telefone: "", email: "" });
+      mostrarToast(`Lead "${nome}" criado e teste iniciado.`);
     } catch (e) {
       mostrarToast(e instanceof Error ? e.message : "Erro ao adicionar lead de teste.");
     } finally {
@@ -417,39 +453,60 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                     className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[var(--border-strong)] py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
                   >
                     <UserPlus className="h-3.5 w-3.5" />
-                    Adicionar lead de teste
+                    Adicionar lead para teste
                   </button>
                 ) : (
                   <div className="space-y-2">
-                    <input
-                      value={nomeLeadTeste}
-                      onChange={(e) => setNomeLeadTeste(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") adicionarLeadTeste();
-                        if (e.key === "Escape") setMostrarFormLead(false);
-                      }}
-                      placeholder="Nome do lead (ex.: Lead Teste)"
-                      autoFocus
-                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        value={formLead.nome}
+                        onChange={(e) => setFormLead((f) => ({ ...f, nome: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setMostrarFormLead(false);
+                        }}
+                        placeholder="Nome *"
+                        autoFocus
+                        className="col-span-2 w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                      />
+                      <input
+                        value={formLead.telefone}
+                        onChange={(e) => setFormLead((f) => ({ ...f, telefone: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setMostrarFormLead(false);
+                        }}
+                        placeholder="Telefone com DDD *"
+                        type="tel"
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                      />
+                      <input
+                        value={formLead.email}
+                        onChange={(e) => setFormLead((f) => ({ ...f, email: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setMostrarFormLead(false);
+                        }}
+                        placeholder="Email (opcional)"
+                        type="email"
+                        className="w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                      />
+                    </div>
                     <div className="flex gap-2">
                       <button
                         onClick={adicionarLeadTeste}
                         disabled={criandoLead}
                         className="flex-1 rounded-lg bg-[var(--accent)] py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
                       >
-                        {criandoLead ? "Criando..." : "Criar e iniciar"}
+                        {criandoLead ? "Criando..." : "Criar lead e iniciar teste"}
                       </button>
                       <button
                         onClick={() => setMostrarFormLead(false)}
                         disabled={criandoLead}
                         className="rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
                       >
-                        Cancelar
+                        Fechar
                       </button>
                     </div>
                     <p className="text-[10px] leading-snug text-[var(--text-muted)]">
-                      Cria um lead real (telefone fictício) e inicia este fluxo para ele.
+                      Use um telefone real (ex.: o seu) para receber as mensagens do fluxo pelo WhatsApp e validar o funcionamento. Crie quantos leads precisar.
                     </p>
                   </div>
                 )}
@@ -462,7 +519,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                     Nenhum lead neste fluxo
                   </p>
                   <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                    Adicione um lead de teste acima para acompanhar a execução, ou aplique o fluxo a leads existentes.
+                    Adicione um lead para teste acima para acompanhar a execução, ou aplique o fluxo a leads existentes.
                   </p>
                 </div>
               ) : (

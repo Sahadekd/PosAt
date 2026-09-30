@@ -219,6 +219,15 @@ export class ExecutarFluxoUseCase {
       }
     }
 
+    // Normaliza para formato internacional BR (+55...) — o WAHA recebe só dígitos
+    if (base.telefone) {
+      const d = base.telefone.replace(/\D/g, "");
+      if (d) {
+        const completo = d.startsWith("55") && d.length >= 12 ? d : d.length <= 11 ? `55${d}` : d;
+        base.telefone = `+${completo}`;
+      }
+    }
+
     // Persiste para que condições/retries futuros usem os mesmos dados
     if (JSON.stringify(base) !== JSON.stringify(execucao.contexto ?? {})) {
       try {
@@ -414,7 +423,7 @@ export class ExecutarFluxoUseCase {
     );
 
     if (!sessao) {
-      await this.falharNo(noExec, execucao, "Nenhuma sessão WhatsApp disponível para envio.");
+      await this.retryOuFalhar(noExec, execucao, "Nenhuma sessão WhatsApp disponível para envio.");
       return;
     }
 
@@ -451,34 +460,43 @@ export class ExecutarFluxoUseCase {
 
       await this.avancar(execucao, fluxo, no.id, contexto);
     } catch (erro) {
-      const tentativas = noExec.tentativas + 1;
       const msg = erro instanceof Error ? erro.message : "Falha no envio";
-
-      if (tentativas >= MAX_TENTATIVAS) {
-        await this.falharNo(noExec, execucao, msg, tentativas);
-      } else {
-        // Retry com backoff
-        const backoff = new Date();
-        backoff.setMinutes(backoff.getMinutes() + tentativas * 2);
-
-        await this.execucaoRepo.atualizarNo(noExec.id, {
-          estado: "agendado",
-          tentativas,
-          erro_detalhe: msg,
-          agendado_para: backoff.toISOString(),
-        });
-        await this.execucaoRepo.update(execucao.id, {
-          no_atual_estado: "agendado",
-          proxima_execucao_em: backoff.toISOString(),
-          tentativas,
-        });
-        await this.registrarLog(execucao, "retry_agendado", {
-          noId: no.id,
-          tentativas,
-          erro: msg,
-        });
-      }
+      await this.retryOuFalhar(noExec, execucao, msg);
     }
+  }
+
+  // Retry com backoff; falha definitiva ao atingir MAX_TENTATIVAS
+  private async retryOuFalhar(
+    noExec: FluxoNoExecucao,
+    execucao: FluxoExecucao,
+    msg: string
+  ): Promise<void> {
+    const tentativas = noExec.tentativas + 1;
+
+    if (tentativas >= MAX_TENTATIVAS) {
+      await this.falharNo(noExec, execucao, msg, tentativas);
+      return;
+    }
+
+    const backoff = new Date();
+    backoff.setMinutes(backoff.getMinutes() + tentativas * 2);
+
+    await this.execucaoRepo.atualizarNo(noExec.id, {
+      estado: "agendado",
+      tentativas,
+      erro_detalhe: msg,
+      agendado_para: backoff.toISOString(),
+    });
+    await this.execucaoRepo.update(execucao.id, {
+      no_atual_estado: "agendado",
+      proxima_execucao_em: backoff.toISOString(),
+      tentativas,
+    });
+    await this.registrarLog(execucao, "retry_agendado", {
+      noId: noExec.no_id,
+      tentativas,
+      erro: msg,
+    });
   }
 
   private async executarAcaoInterna(
