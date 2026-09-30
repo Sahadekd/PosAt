@@ -19,6 +19,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   ChevronRight,
+  GitBranch,
 } from "lucide-react";
 
 type NavItem = { label: string; href: string; icon: typeof Users };
@@ -37,6 +38,7 @@ const GRUPOS: { titulo: string; itens: NavItem[] }[] = [
   {
     titulo: "Operação",
     itens: [
+      { label: "Fluxos", href: "/fluxos", icon: GitBranch },
       { label: "Kanban", href: "/kanban", icon: KanbanSquare },
       { label: "Handoffs", href: "/handoffs", icon: ArrowRightLeft },
     ],
@@ -56,6 +58,8 @@ const ROTA_TITULO: { match: RegExp; titulo: string; pai?: string }[] = [
   { match: /^\/clientes$/, titulo: "Clientes" },
   { match: /^\/oportunidades/, titulo: "Oportunidades" },
   { match: /^\/tarefas$/, titulo: "Tarefas" },
+  { match: /^\/fluxos\/[^/]+$/, titulo: "Editor de fluxo", pai: "Fluxos" },
+  { match: /^\/fluxos$/, titulo: "Fluxo de Leads" },
   { match: /^\/kanban$/, titulo: "Kanban" },
   { match: /^\/handoffs$/, titulo: "Handoffs" },
   { match: /^\/mensagens$/, titulo: "Conversas" },

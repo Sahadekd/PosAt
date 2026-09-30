@@ -23,6 +23,15 @@ import {
   PesquisaNps,
   RegistroAcessoWhatsApp,
 } from "../../domain/entities/types";
+import {
+  Fluxo,
+  FluxoExecucao,
+  FluxoNoExecucao,
+  FluxoLog,
+  FiltrosFluxo,
+  FiltrosExecucaoFluxo,
+  ResumoExecucaoFluxo,
+} from "../../domain/entities/fluxo";
 
 // --- Pessoa Repository ---
 
@@ -140,4 +149,41 @@ export interface IWhatsAppRepository {
   registrarAcesso(dados: Partial<RegistroAcessoWhatsApp>): Promise<RegistroAcessoWhatsApp>;
   listarAcessos(): Promise<RegistroAcessoWhatsApp[]>;
   deletarConversa(id: string): Promise<boolean>;
+}
+
+// --- Fluxo de Leads Repository ---
+
+export interface IFluxoRepository {
+  findAll(filtros?: FiltrosFluxo): Promise<Fluxo[]>;
+  findById(id: string): Promise<Fluxo | null>;
+  create(data: Partial<Fluxo>): Promise<Fluxo>;
+  update(id: string, data: Partial<Fluxo>): Promise<Fluxo | null>;
+  delete(id: string): Promise<boolean>;
+  duplicar(id: string, criadoPor?: string | null): Promise<Fluxo | null>;
+}
+
+// --- Fluxo Execução Repository ---
+
+export interface IFluxoExecucaoRepository {
+  findAll(filtros?: FiltrosExecucaoFluxo): Promise<FluxoExecucao[]>;
+  findById(id: string): Promise<FluxoExecucao | null>;
+  findAtiva(fluxoId: string, clienteId: string): Promise<FluxoExecucao | null>;
+  listarParaExecucao(agora: string): Promise<FluxoExecucao[]>;
+  create(data: Partial<FluxoExecucao>): Promise<FluxoExecucao>;
+  update(id: string, data: Partial<FluxoExecucao>): Promise<FluxoExecucao | null>;
+  cancelarAtivasDoCliente(clienteId: string, motivo?: string): Promise<number>;
+  // Nós da execução (linha do tempo)
+  listarNos(execucaoId: string): Promise<FluxoNoExecucao[]>;
+  criarNo(data: Partial<FluxoNoExecucao>): Promise<FluxoNoExecucao>;
+  atualizarNo(id: string, data: Partial<FluxoNoExecucao>): Promise<FluxoNoExecucao | null>;
+  obterResumo(execucaoId: string): Promise<ResumoExecucaoFluxo | null>;
+}
+
+// --- Fluxo Log Repository ---
+
+export interface IFluxoLogRepository {
+  listarPorExecucao(execucaoId: string, limite?: number): Promise<FluxoLog[]>;
+  listarPorCliente(clienteId: string, limite?: number): Promise<FluxoLog[]>;
+  listarPorFluxo(fluxoId: string, limite?: number): Promise<FluxoLog[]>;
+  create(data: Partial<FluxoLog>): Promise<FluxoLog>;
 }

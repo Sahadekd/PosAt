@@ -8,6 +8,9 @@ import { VendedorRepository } from "./adapters/repositories/vendedor.repository"
 import { ImovelRepository } from "./adapters/repositories/imovel.repository";
 import { HistoricoOportunidadeRepository } from "./adapters/repositories/historico-oportunidade.repository";
 import { WhatsAppRepository } from "./adapters/repositories/whatsapp.repository";
+import { FluxoRepository } from "./adapters/repositories/fluxo.repository";
+import { FluxoExecucaoRepository } from "./adapters/repositories/fluxo-execucao.repository";
+import { FluxoLogRepository } from "./adapters/repositories/fluxo-log.repository";
 
 import { CriarClienteUseCase } from "./use-cases/CriarCliente";
 import { ListarClientesUseCase } from "./use-cases/ListarClientes";
@@ -60,6 +63,26 @@ import { ExportarHistoricoWhatsAppUseCase } from "./use-cases/ExportarHistoricoW
 import { ObterLogAcessosWhatsAppUseCase } from "./use-cases/ObterLogAcessosWhatsApp";
 import { ExcluirConversaWhatsAppUseCase } from "./use-cases/ExcluirConversaWhatsApp";
 
+import {
+  ListarFluxosUseCase,
+  CriarFluxoUseCase,
+  AtualizarFluxoUseCase,
+  DuplicarFluxoUseCase,
+  DeletarFluxoUseCase,
+  AplicarTemplateUseCase,
+} from "./use-cases/FluxoCrud";
+import {
+  ExecutarFluxoUseCase,
+  PausarFluxoPorRespostaUseCase,
+  ControlarExecucaoUseCase,
+  ProcessarAgendamentosUseCase,
+} from "./use-cases/ExecutarFluxo";
+import {
+  ListarExecucoesUseCase,
+  ObterResumoExecucaoUseCase,
+  AuditoriaLeadUseCase,
+} from "./use-cases/FluxoConsulta";
+
 // Repositories (Driven Adapters)
 export const pessoaRepo = new PessoaRepository();
 export const clienteRepo = new ClienteRepository();
@@ -71,6 +94,9 @@ export const vendedorRepo = new VendedorRepository();
 export const imovelRepo = new ImovelRepository();
 export const historicoOportunidadeRepo = new HistoricoOportunidadeRepository();
 export const whatsAppRepo = new WhatsAppRepository();
+export const fluxoRepo = new FluxoRepository();
+export const fluxoExecucaoRepo = new FluxoExecucaoRepository();
+export const fluxoLogRepo = new FluxoLogRepository();
 
 // Use Cases (Application Core)
 export const criarClienteUseCase = new CriarClienteUseCase(pessoaRepo, clienteRepo);
@@ -151,3 +177,38 @@ export const responderNpsWhatsAppUseCase = new ResponderNpsWhatsAppUseCase(whats
 export const exportarHistoricoWhatsAppUseCase = new ExportarHistoricoWhatsAppUseCase(whatsAppRepo);
 export const obterLogAcessosWhatsAppUseCase = new ObterLogAcessosWhatsAppUseCase(whatsAppRepo);
 export const excluirConversaWhatsAppUseCase = new ExcluirConversaWhatsAppUseCase(whatsAppRepo);
+
+// ---- Fluxo de Leads ----
+export const listarFluxosUseCase = new ListarFluxosUseCase(fluxoRepo);
+export const criarFluxoUseCase = new CriarFluxoUseCase(fluxoRepo);
+export const atualizarFluxoUseCase = new AtualizarFluxoUseCase(fluxoRepo);
+export const duplicarFluxoUseCase = new DuplicarFluxoUseCase(fluxoRepo);
+export const deletarFluxoUseCase = new DeletarFluxoUseCase(fluxoRepo);
+export const aplicarTemplateUseCase = new AplicarTemplateUseCase(fluxoRepo, fluxoExecucaoRepo);
+
+export const executarFluxoUseCase = new ExecutarFluxoUseCase(
+  fluxoRepo,
+  fluxoExecucaoRepo,
+  fluxoLogRepo,
+  tarefaRepo,
+  interacaoRepo
+);
+export const pausarFluxoPorRespostaUseCase = new PausarFluxoPorRespostaUseCase(
+  fluxoExecucaoRepo,
+  fluxoLogRepo
+);
+export const controlarExecucaoUseCase = new ControlarExecucaoUseCase(
+  fluxoRepo,
+  fluxoExecucaoRepo,
+  fluxoLogRepo
+);
+export const processarAgendamentosUseCase = new ProcessarAgendamentosUseCase(
+  fluxoExecucaoRepo,
+  executarFluxoUseCase
+);
+export const listarExecucoesUseCase = new ListarExecucoesUseCase(fluxoExecucaoRepo);
+export const obterResumoExecucaoUseCase = new ObterResumoExecucaoUseCase(
+  fluxoExecucaoRepo,
+  fluxoLogRepo
+);
+export const auditoriaLeadUseCase = new AuditoriaLeadUseCase(fluxoExecucaoRepo, fluxoLogRepo);
