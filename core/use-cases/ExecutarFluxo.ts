@@ -137,7 +137,7 @@ export class ExecutarFluxoUseCase {
     const fluxo = await this.fluxoRepo.findById(execucao.fluxo_id);
     if (!fluxo || fluxo.status !== "ativo") return;
 
-    const contexto = execucao.contexto as ContextoLead;
+    const contexto = await this.montarContexto(execucao);
     const grafo = fluxo.grafo;
     const noAtualId = execucao.no_atual_id;
 
@@ -189,6 +189,46 @@ export class ExecutarFluxoUseCase {
 
       await this.processarNo(execucao, fluxo, noAtual, contexto);
     }
+  }
+
+  /**
+   * Monta o contexto do lead combinando o contexto já salvo na execução
+   * com dados do cliente (nome, telefone, estágio), para que variáveis
+   * como {{nome}}/{{telefone}} e condições funcionem em execuções de teste.
+   */
+  private async montarContexto(execucao: FluxoExecucao): Promise<ContextoLead> {
+    const base = { ...(execucao.contexto as ContextoLead) };
+
+    if (supabaseAdmin) {
+      try {
+        const { data } = await supabaseAdmin
+          .from("clientes")
+          .select("id, status, responsavel_id, pessoa:pessoas(nome, telefone)")
+          .eq("id", execucao.cliente_id)
+          .single();
+
+        if (data) {
+          const pessoa = Array.isArray(data.pessoa) ? data.pessoa[0] : data.pessoa;
+          if (!base.nome && pessoa?.nome) base.nome = pessoa.nome;
+          if (!base.telefone && pessoa?.telefone) base.telefone = pessoa.telefone;
+          if (!base.estagio && data.status) base.estagio = data.status;
+          if (!base.responsavel && data.responsavel_id) base.responsavel = data.responsavel_id;
+        }
+      } catch {
+        // contexto é best-effort — segue com o que a execução já tem
+      }
+    }
+
+    // Persiste para que condições/retries futuros usem os mesmos dados
+    if (JSON.stringify(base) !== JSON.stringify(execucao.contexto ?? {})) {
+      try {
+        await this.execucaoRepo.update(execucao.id, { contexto: base });
+      } catch {
+        // best-effort
+      }
+    }
+
+    return base;
   }
 
   private async processarNo(
@@ -294,7 +334,7 @@ export class ExecutarFluxoUseCase {
             break;
           }
 
-          await this.dispararMensagem(execucao, fluxo, no, noExec, conteudoFinal, telefone);
+          await this.dispararMensagem(execucao, fluxo, no, noExec, conteudoFinal, telefone, contexto);
           break;
         }
 
@@ -366,7 +406,8 @@ export class ExecutarFluxoUseCase {
     no: NoFluxo,
     noExec: FluxoNoExecucao,
     conteudo: string,
-    telefone: string
+    telefone: string,
+    contexto: ContextoLead
   ): Promise<void> {
     const sessao = await this.obterSessaoDoResponsavel(
       execucao.cliente?.responsavel_id ?? fluxo.responsavel_id
@@ -408,7 +449,7 @@ export class ExecutarFluxoUseCase {
         // interação é best-effort
       }
 
-      await this.avancar(execucao, fluxo, no.id, execucao.contexto as ContextoLead);
+      await this.avancar(execucao, fluxo, no.id, contexto);
     } catch (erro) {
       const tentativas = noExec.tentativas + 1;
       const msg = erro instanceof Error ? erro.message : "Falha no envio";

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
@@ -19,6 +19,7 @@ import {
   SkipForward,
   Ban,
   ExternalLink,
+  UserPlus,
 } from "lucide-react";
 import { FluxoCanvas, type FluxoCanvasHandle } from "./FluxoCanvas";
 import { LinhaTempoView } from "./LinhaTempoView";
@@ -46,6 +47,9 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   const [resumo, setResumo] = useState<ResumoExecucaoFluxo | null>(null);
   const [aba, setAba] = useState<Aba>("execucoes");
   const [toast, setToast] = useState<string | null>(null);
+  const [mostrarFormLead, setMostrarFormLead] = useState(false);
+  const [nomeLeadTeste, setNomeLeadTeste] = useState("");
+  const [criandoLead, setCriandoLead] = useState(false);
   const canvasRef = useRef<FluxoCanvasHandle>(null);
 
   // Carrega fluxo
@@ -187,7 +191,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   }
 
   // Estados por nó da execução selecionada (destaque no canvas)
-  const estadosNo = useCallback((): Record<string, EstadoNoExecucao> | undefined => {
+  const estadosNo = useMemo((): Record<string, EstadoNoExecucao> | undefined => {
     if (!resumo) return undefined;
     const mapa: Record<string, EstadoNoExecucao> = {};
     for (const no of resumo.nos) mapa[no.no_id] = no.estado;
@@ -196,6 +200,45 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
     }
     return mapa;
   }, [resumo]);
+
+  // Adiciona um lead de teste e inicia o fluxo para ele
+  async function adicionarLeadTeste() {
+    setCriandoLead(true);
+    try {
+      const nome = nomeLeadTeste.trim() || `Lead Teste ${new Date().toLocaleTimeString("pt-BR")}`;
+      const telefone = `+55119${Math.floor(10000000 + Math.random() * 89999999)}`;
+
+      const rc = await fetch("/api/clientes", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nome,
+          telefone,
+          origem: "manual",
+          observacoes: "Lead criado para testar fluxo de leads.",
+        }),
+      });
+      if (!rc.ok) throw new Error("Erro ao criar lead de teste.");
+      const { cliente } = await rc.json();
+
+      const re = await fetch("/api/fluxos/execucoes/iniciar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fluxoId, clienteId: cliente.id }),
+      });
+      const dr = await re.json();
+      if (!re.ok) throw new Error(dr.erro ?? "Erro ao iniciar execução.");
+
+      await carregarExecucoes();
+      setMostrarFormLead(false);
+      setNomeLeadTeste("");
+      mostrarToast(`Lead "${nome}" adicionado ao fluxo.`);
+    } catch (e) {
+      mostrarToast(e instanceof Error ? e.message : "Erro ao adicionar lead de teste.");
+    } finally {
+      setCriandoLead(false);
+    }
+  }
 
   if (carregando) {
     return (
@@ -324,14 +367,14 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                 setGrafo(g);
                 setSujo(true);
               }}
-              estadosNo={estadosNo()}
+              estadosNo={estadosNo}
               onSelecionarNo={() => {}}
             />
           ) : (
             <div className="h-full overflow-y-auto scroll-thin">
               <LinhaTempoView
                 grafo={grafo}
-                estadosNo={estadosNo()}
+                estadosNo={estadosNo}
                 noAtualId={resumo?.execucao.no_atual_id}
               />
             </div>
@@ -366,6 +409,52 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
 
           {aba === "execucoes" ? (
             <div className="flex-1 overflow-y-auto scroll-thin">
+              {/* Adicionar lead de teste */}
+              <div className="border-b border-[var(--border)] p-3">
+                {!mostrarFormLead ? (
+                  <button
+                    onClick={() => setMostrarFormLead(true)}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-[var(--border-strong)] py-2 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                  >
+                    <UserPlus className="h-3.5 w-3.5" />
+                    Adicionar lead de teste
+                  </button>
+                ) : (
+                  <div className="space-y-2">
+                    <input
+                      value={nomeLeadTeste}
+                      onChange={(e) => setNomeLeadTeste(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") adicionarLeadTeste();
+                        if (e.key === "Escape") setMostrarFormLead(false);
+                      }}
+                      placeholder="Nome do lead (ex.: Lead Teste)"
+                      autoFocus
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={adicionarLeadTeste}
+                        disabled={criandoLead}
+                        className="flex-1 rounded-lg bg-[var(--accent)] py-2 text-xs font-semibold text-white hover:bg-[var(--accent-hover)] disabled:opacity-50"
+                      >
+                        {criandoLead ? "Criando..." : "Criar e iniciar"}
+                      </button>
+                      <button
+                        onClick={() => setMostrarFormLead(false)}
+                        disabled={criandoLead}
+                        className="rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                    <p className="text-[10px] leading-snug text-[var(--text-muted)]">
+                      Cria um lead real (telefone fictício) e inicia este fluxo para ele.
+                    </p>
+                  </div>
+                )}
+              </div>
+
               {execucoes.length === 0 ? (
                 <div className="flex flex-col items-center gap-2 px-5 py-10 text-center">
                   <Users className="h-7 w-7 text-[var(--text-muted)]" />
@@ -373,7 +462,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                     Nenhum lead neste fluxo
                   </p>
                   <p className="text-[11px] leading-relaxed text-[var(--text-secondary)]">
-                    Ative o fluxo e aplique-o a um lead ou segmento para começar a acompanhar.
+                    Adicione um lead de teste acima para acompanhar a execução, ou aplique o fluxo a leads existentes.
                   </p>
                 </div>
               ) : (
