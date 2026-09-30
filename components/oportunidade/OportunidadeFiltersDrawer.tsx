@@ -52,18 +52,18 @@ export default function OportunidadeFiltersDrawer({
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={aoFechar}
       />
-      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-slate-800/60 bg-[#0D1320] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800/80 px-6 py-4">
+      <aside className="absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-[var(--border)] bg-[var(--white)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-4">
           <div className="flex items-center gap-2.5">
-            <SlidersHorizontal className="h-4 w-4 text-sky-400" />
-            <h2 className="text-base font-black tracking-wide text-white">
+            <SlidersHorizontal className="h-4 w-4 text-[var(--accent)]" />
+            <h2 className="text-base font-black tracking-wide text-[var(--text-primary)]">
               Filtros de oportunidades
             </h2>
           </div>
           <button
             onClick={aoFechar}
             aria-label="Fechar filtros"
-            className="rounded-xl border border-slate-800 p-2 text-slate-400 transition hover:border-slate-700 hover:bg-slate-900/40 hover:text-white"
+            className="rounded-xl border border-[var(--border)] p-2 text-[var(--text-muted)] transition hover:border-[var(--border-strong)] hover:bg-[var(--inset)]/60 hover:text-[var(--text-primary)]"
           >
             <X className="h-5 w-5" />
           </button>
@@ -71,23 +71,23 @@ export default function OportunidadeFiltersDrawer({
 
         <div className="flex-1 space-y-6 overflow-y-auto px-6 py-6">
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
               Busca
             </label>
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
               <input
                 type="text"
                 value={filtros.busca}
                 onChange={(e) => mudar("busca", e.target.value)}
                 placeholder="Cliente, imóvel, vendedor…"
-                className="w-full rounded-xl border border-slate-700/80 bg-slate-900/60 py-2.5 pl-10 pr-3 text-sm text-slate-200 outline-none transition placeholder:text-slate-600 focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/20"
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] py-2.5 pl-10 pr-3 text-sm text-[var(--text-primary)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
               />
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
               Origem do registro
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -96,8 +96,8 @@ export default function OportunidadeFiltersDrawer({
                 onClick={() => mudar("origem", "")}
                 className={`rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
                   filtros.origem === ""
-                    ? "border-sky-500/60 bg-blue-600 text-white"
-                    : "border-slate-700/80 bg-slate-900/40 text-slate-300 hover:bg-slate-800"
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--inset)]"
                 }`}
               >
                 Todas
@@ -109,8 +109,8 @@ export default function OportunidadeFiltersDrawer({
                   onClick={() => mudar("origem", filtros.origem === orig ? "" : orig)}
                   className={`rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
                     filtros.origem === orig
-                      ? "border-sky-500/60 bg-blue-600 text-white"
-                      : "border-slate-700/80 bg-slate-900/40 text-slate-300 hover:bg-slate-800"
+                      ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                      : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--inset)]"
                   }`}
                 >
                   {ORIGEM_LABEL[orig]}
@@ -120,7 +120,7 @@ export default function OportunidadeFiltersDrawer({
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
               Regra geradora
             </label>
             <div className="flex flex-wrap gap-1.5">
@@ -129,8 +129,8 @@ export default function OportunidadeFiltersDrawer({
                 onClick={() => mudar("regra", "")}
                 className={`rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
                   filtros.regra === ""
-                    ? "border-sky-500/60 bg-blue-600 text-white"
-                    : "border-slate-700/80 bg-slate-900/40 text-slate-300 hover:bg-slate-800"
+                    ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--inset)]"
                 }`}
               >
                 Todas
@@ -142,8 +142,8 @@ export default function OportunidadeFiltersDrawer({
                   onClick={() => mudar("regra", filtros.regra === regra ? "" : regra)}
                   className={`rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-wider transition ${
                     filtros.regra === regra
-                      ? "border-sky-500/60 bg-blue-600 text-white"
-                      : "border-slate-700/80 bg-slate-900/40 text-slate-300 hover:bg-slate-800"
+                      ? "border-[var(--accent)] bg-[var(--accent)] text-white"
+                      : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-secondary)] hover:bg-[var(--inset)]"
                   }`}
                 >
                   {REGRA_LABEL[regra]}
@@ -153,13 +153,13 @@ export default function OportunidadeFiltersDrawer({
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--text-muted)]">
               Vendedor / responsável
             </label>
             <select
               value={filtros.vendedor}
               onChange={(e) => mudar("vendedor", e.target.value)}
-              className="w-full rounded-xl border border-slate-700/80 bg-slate-900/60 px-3 py-2.5 text-sm text-slate-200 outline-none transition focus:border-sky-500/60 focus:ring-2 focus:ring-sky-500/20"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--text-primary)] outline-none transition focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]/20"
             >
               <option value="">Todos</option>
               {vendedores.map((v) => (
@@ -171,13 +171,13 @@ export default function OportunidadeFiltersDrawer({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border-t border-slate-800/80 px-6 py-4">
+        <div className="flex items-center justify-between gap-3 border-t border-[var(--border)] px-6 py-4">
           <button
             onClick={() => {
               aoLimpar();
               aoFechar();
             }}
-            className="flex items-center gap-1.5 rounded-xl border border-slate-700/80 bg-slate-900/40 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:bg-slate-800"
+            className="flex items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-semibold text-[var(--text-primary)] transition hover:bg-[var(--inset)]"
           >
             <RotateCcw className="h-4 w-4" />
             Limpar

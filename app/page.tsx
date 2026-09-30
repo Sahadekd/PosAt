@@ -174,7 +174,7 @@ export default function HomePage() {
 
   const composicao = stats.composicaoStatus || {};
   const composicaoTotal = Object.values(composicao).reduce((a, b) => a + b, 0) || 1;
-  const composicaoCores = ["#0ea5e9", "#f59e0b", "#10b981", "#8b5cf6", "#e05b3f", "#64748b", "#3b82f6"];
+  const composicaoCores = ["#0284c7", "#d97706", "#059669", "#7c3aed", "#dc2626", "#64748b", "#2563eb"];
 
   const quickLinks = [
     { icon: Users, label: "Base de clientes", desc: "Cadastros, filtros e status de pós-venda", href: "/clientes" },

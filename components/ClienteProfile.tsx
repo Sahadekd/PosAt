@@ -48,7 +48,7 @@ function initials(name: string) {
 
 function avatarColor(name: string): string {
   const colors = [
-    "#e05b3f","#00a699","#d97706","#6366f1","#0ea5e9","#84cc16","#ec4899"
+    "#dc2626","#0d9488","#b45309","#4f46e5","#0284c7","#65a30d","#db2777"
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -356,7 +356,7 @@ export default function ClienteProfile({ clienteInicial }: ClienteProfileProps) 
               </button>
 
               {menuAcoesAberto && (
-                <div className="absolute right-0 top-12 z-30 w-64 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--inset)] py-1.5 text-sm shadow-2xl shadow-black/40">
+                <div className="absolute right-0 top-12 z-30 w-64 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--inset)] py-1.5 text-sm shadow-xl shadow-black/10">
                   <button
                     onClick={() => { setMenuAcoesAberto(false); setModalInteracaoAberto(true); }}
                     className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-semibold text-[var(--text-primary)] transition hover:bg-[var(--raised)]"

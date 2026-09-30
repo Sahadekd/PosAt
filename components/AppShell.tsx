@@ -69,6 +69,8 @@ interface UsuarioLeve {
   email: string;
   papel: Papel;
   papel_label: string;
+  modulos?: { modulo: Modulo; acoes: string[] }[];
+  rotas?: string[];
 }
 
 const ROTA_TITULO: { match: RegExp; titulo: string; pai?: string }[] = [
@@ -158,6 +160,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function podeVer(item: NavItem): boolean {
     if (!usuario) return false;
+    // Rota explícita concedida (matriz de acesso editável), com fallback
+    // para a matriz estática por módulo quando o backend não retornar rotas.
+    if (usuario.rotas && usuario.rotas.length > 0) {
+      return usuario.rotas.includes(item.href);
+    }
     return pode(usuario.papel, item.modulo, "ver");
   }
 
@@ -188,10 +195,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             {!colapsada && (
               <div className="leading-tight">
-                <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-sky-400">
+                <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">
                   Quadra
                 </span>
-                <span className="block text-sm font-semibold text-slate-100">
+                <span className="block text-sm font-semibold text-[var(--text-primary)]">
                   Pós-Atendimento
                 </span>
               </div>
@@ -206,7 +213,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           aria-label={colapsada ? "Expandir menu" : "Recolher menu"}
           aria-expanded={!colapsada}
           data-tooltip={colapsada ? "Expandir menu" : "Recolher menu"}
-          className="sidebar-handle absolute right-[-25px] top-1/2 z-30 flex h-12 w-6 -translate-y-1/2 flex-col items-center justify-center rounded-r-lg border border-[var(--border)] bg-[var(--side)] text-slate-400 shadow-md transition-colors hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
+          className="sidebar-handle absolute right-[-25px] top-1/2 z-30 flex h-12 w-6 -translate-y-1/2 flex-col items-center justify-center rounded-r-lg border border-[var(--border)] bg-[var(--side)] text-[var(--text-muted)] shadow-md transition-colors hover:border-[var(--accent-border)] hover:text-[var(--accent)]"
         >
           {colapsada ? (
             <ChevronsRight className="h-4 w-4" />
@@ -220,7 +227,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {gruposVisiveis.map((grupo) => (
             <div key={grupo.titulo}>
               {!colapsada && (
-                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
                   {grupo.titulo}
                 </p>
               )}
@@ -234,10 +241,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       href={item.href}
                       data-tooltip={colapsada ? item.label : undefined}
                       aria-label={item.label}
-                      className={`flex items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors ${
+                      className={`flex items-center gap-3 rounded-xl px-3 text-sm font-medium transition-colors ${
                         ativa
-                          ? "bg-[var(--accent-light)] text-white"
-                          : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                          ? "bg-[var(--accent-light)] text-[var(--accent)]"
+                          : "text-[var(--text-secondary)] hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
                       } ${colapsada ? "justify-center px-0 py-2.5" : "py-2"}`}
                     >
                       <Icon className={`h-[18px] w-[18px] shrink-0 ${ativa ? "text-[var(--accent)]" : ""}`} />
@@ -255,14 +262,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {usuario && (
             <div className="pt-5">
               {!colapsada && (
-                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
                   Sessão
                 </p>
               )}
               <button
                 onClick={sair}
                 data-tooltip={colapsada ? "Sair" : undefined}
-                className={`flex w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-slate-400 transition-colors hover:bg-white/5 hover:text-rose-300 ${
+                className={`flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--inset)] hover:text-[var(--danger)] ${
                   colapsada ? "justify-center px-0 py-2.5" : "py-2"
                 }`}
               >
@@ -288,14 +295,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   <Building2 className="h-4 w-4" />
                 </div>
                 <div className="leading-tight">
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-sky-400">Quadra</span>
-                  <span className="block text-sm font-semibold text-slate-100">Pós-Atendimento</span>
+                  <span className="block text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">Quadra</span>
+                  <span className="block text-sm font-semibold text-[var(--text-primary)]">Pós-Atendimento</span>
                 </div>
               </Link>
               <button
                 onClick={() => setMenuAberto(false)}
                 aria-label="Fechar menu"
-                className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                className="rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -303,7 +310,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
               {gruposVisiveis.map((grupo) => (
                 <div key={grupo.titulo}>
-                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
                     {grupo.titulo}
                   </p>
                   <div className="space-y-0.5">
@@ -314,10 +321,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         <Link
                           key={item.href}
                           href={item.href}
-                          className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
                             ativa
-                              ? "bg-[var(--accent-light)] text-white"
-                              : "text-slate-400 hover:bg-white/5 hover:text-slate-100"
+                              ? "bg-[var(--accent-light)] text-[var(--accent)]"
+                              : "text-[var(--text-secondary)] hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
                           }`}
                         >
                           <Icon className={`h-[18px] w-[18px] ${ativa ? "text-[var(--accent)]" : ""}`} />
@@ -330,12 +337,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               ))}
               {usuario && (
                 <div>
-                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
                     Sessão
                   </p>
                   <button
                     onClick={sair}
-                    className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-rose-300"
+                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--inset)] hover:text-[var(--danger)]"
                   >
                     <LogOut className="h-[18px] w-[18px]" />
                     Sair
@@ -350,11 +357,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* ─── Área de conteúdo ─── */}
       <div className="flex min-h-screen flex-col">
         {/* Topbar */}
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--border)] bg-[var(--surface)]/85 px-4 backdrop-blur-md sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--border)] bg-[var(--side)]/90 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <button
             onClick={() => setMenuAberto(true)}
             aria-label="Abrir menu"
-            className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"
+            className="rounded-lg p-2 text-[var(--text-secondary)] hover:bg-[var(--inset)] hover:text-[var(--text-primary)] lg:hidden"
           >
             <Menu className="h-5 w-5" />
           </button>
@@ -400,7 +407,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <span className="hidden text-xs font-medium text-[var(--text-muted)] min-[380px]:block">
                   {carregado ? "Bem-vindo" : "Carregando…"}
                 </span>
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-700 text-[11px] font-bold text-white">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[var(--text-muted)]/25 text-[11px] font-bold text-[var(--text-secondary)]">
                   ?
                 </span>
               </div>
@@ -409,7 +416,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {menuPerfil && usuario && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuPerfil(false)} />
-                <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--side)] shadow-2xl">
+                <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--side)] shadow-xl">
                   {/* Identidade */}
                   <div className="flex items-center gap-3 p-3">
                     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white">
@@ -436,7 +443,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         setMenuPerfil(false);
                         router.push("/minha-conta");
                       }}
-                      className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-border)] hover:text-white"
+                      className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent-border)] hover:text-[var(--text-primary)]"
                     >
                       <UserCircle2 className="h-4 w-4" />
                       Meu perfil
@@ -446,7 +453,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                         setMenuPerfil(false);
                         void sair();
                       }}
-                      className="flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:bg-white/5 hover:text-rose-300"
+                      className="flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:bg-[var(--inset)] hover:text-[var(--danger)]"
                     >
                       <LogOut className="h-4 w-4" />
                       Sair

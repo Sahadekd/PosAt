@@ -19,9 +19,9 @@ import NovaTarefaModal from "./NovaTarefaModal";
 import { executeGraphQL, QUERIES, MUTATIONS } from "@/lib/graphql-client";
 
 const PRIORIDADE_LABEL: Record<number, { label: string; color: string }> = {
-  1: { label: "Crítica", color: "#e05b3f" },
-  2: { label: "Alta",    color: "#d97706" },
-  3: { label: "Média",   color: "#6366f1" },
+  1: { label: "Crítica", color: "#dc2626" },
+  2: { label: "Alta",    color: "#b45309" },
+  3: { label: "Média",   color: "#4f46e5" },
 };
 
 const MS_DIA = 24 * 60 * 60 * 1000;
@@ -39,22 +39,22 @@ const COLUNAS: Coluna[] = [
     id: "pendente",
     titulo: "Pendentes",
     statusList: ["pendente"],
-    accent: "#fbbf24",
-    badge: "bg-amber-500/15 text-amber-300",
+    accent: "#d97706",
+    badge: "bg-amber-50 text-amber-700",
   },
   {
     id: "em_andamento",
     titulo: "Em Andamento",
     statusList: ["em_andamento", "reagendada"],
-    accent: "#3b82f6",
-    badge: "bg-blue-500/15 text-blue-300",
+    accent: "#2563eb",
+    badge: "bg-blue-50 text-blue-700",
   },
   {
     id: "concluida",
     titulo: "Concluídas",
     statusList: ["concluida"],
-    accent: "#34d399",
-    badge: "bg-emerald-500/15 text-emerald-300",
+    accent: "#059669",
+    badge: "bg-emerald-50 text-emerald-700",
   },
 ];
 
@@ -503,7 +503,7 @@ export default function PosAtendimentoBoard() {
                         className={`relative flex cursor-pointer flex-col gap-2 overflow-hidden rounded-xl border bg-[var(--white)] p-3 pl-4 shadow-sm transition active:cursor-grabbing ${
                           estaArrastando
                             ? "scale-[1.01] opacity-40 shadow-lg"
-                            : "hover:border-[var(--border-strong)] hover:shadow-lg hover:shadow-black/20"
+                            : "hover:border-[var(--border-strong)] hover:shadow-md hover:shadow-black/10"
                         } ${isVencida ? "border-[var(--danger-border)] ring-1 ring-[var(--danger-border)]" : "border-[var(--border)]"}`}
                       >
                         <span

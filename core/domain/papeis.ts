@@ -107,6 +107,7 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
   secretaria: {
     dashboard: ["ver"],
     clientes: ["ver", "editar"],
+    oportunidades: ["ver"],
     tarefas: ["ver", "criar", "editar"],
     kanban: ["ver", "editar"],
     conversas: ["ver"],
@@ -118,7 +119,7 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
   corretor: {
     dashboard: ["ver"],
     clientes: ["ver", "editar"],
-    oportunidades: ["ver"],
+    oportunidades: ["ver", "criar", "editar"],
     tarefas: ["ver", "criar", "editar"],
     conversas: ["ver"],
     handoffs: ["ver", "criar"],
@@ -147,4 +148,59 @@ export function modulosDoPapel(papel: Papel): { modulo: Modulo; acoes: readonly 
     modulo,
     acoes: acoesDoPapel(papel, modulo),
   }));
+}
+
+/* ────────────────────────────────────────────────────────────────
+ * Modelo de acesso por telas (mesma abordagem do Flow63/Pedrin0405):
+ * cada cargo possui uma lista de rotas que pode visualizar. A matriz
+ * é editável pela tela de Gestão de Acessos e é a base da navegação,
+ * da proteção de rotas e do critério de segregação de telas.
+ * ──────────────────────────────────────────────────────────────── */
+
+export type GrupoRota = "principal" | "operacao" | "gestao" | "conta" | "portal";
+
+export type RotaDoSistema = {
+  rota: string;
+  label: string;
+  grupo: GrupoRota;
+  modulo: Modulo;
+};
+
+export const ROTAS_SISTEMA: readonly RotaDoSistema[] = [
+  { rota: "/", label: "Visão geral", grupo: "principal", modulo: "dashboard" },
+  { rota: "/clientes", label: "Clientes", grupo: "principal", modulo: "clientes" },
+  { rota: "/oportunidades", label: "Oportunidades", grupo: "principal", modulo: "oportunidades" },
+  { rota: "/tarefas", label: "Tarefas", grupo: "principal", modulo: "tarefas" },
+  { rota: "/mensagens", label: "Conversas", grupo: "principal", modulo: "conversas" },
+  { rota: "/kanban", label: "Kanban", grupo: "operacao", modulo: "kanban" },
+  { rota: "/handoffs", label: "Handoffs", grupo: "operacao", modulo: "handoffs" },
+  { rota: "/vendedores", label: "Corretores", grupo: "gestao", modulo: "corretores" },
+  { rota: "/gestor-whatsapp", label: "WhatsApp", grupo: "gestao", modulo: "whatsapp" },
+  { rota: "/acessos", label: "Acessos e permissões", grupo: "conta", modulo: "acessos" },
+  { rota: "/minha-conta", label: "Meu perfil", grupo: "conta", modulo: "minha-conta" },
+  { rota: "/portal", label: "Portal do cliente", grupo: "portal", modulo: "portal" },
+];
+
+export const GRUPO_ROTAS_LABEL: Record<GrupoRota, string> = {
+  principal: "Principal",
+  operacao: "Operação",
+  gestao: "Gestão",
+  conta: "Conta",
+  portal: "Portal",
+};
+
+/**
+ * Rotas padrão de cada cargo, derivadas da matriz de permissões por módulo.
+ * A rota do portal é exclusiva do cliente (equipe é redirecionada pelo proxy).
+ */
+export function rotasPadraoDoPapel(papel: Papel): string[] {
+  return ROTAS_SISTEMA.filter(
+    (rota) =>
+      (rotasDessaRotaPermitida(papel, rota))
+  ).map((rota) => rota.rota);
+}
+
+function rotasDessaRotaPermitida(papel: Papel, rota: RotaDoSistema): boolean {
+  if (rota.grupo === "portal" && papel !== "cliente") return false;
+  return acoesDoPapel(papel, rota.modulo).includes("ver");
 }

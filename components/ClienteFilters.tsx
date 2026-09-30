@@ -203,7 +203,7 @@ export default function ClienteFilters({
               <SlidersHorizontal className="h-4 w-4" />
               <span className="hidden sm:inline">{temFiltroAvancado ? "Filtros ativos" : "Mais filtros"}</span>
               {temFiltroAvancado && (
-                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-white/25 text-[10px] font-bold text-white">
+                <span className="flex h-4 w-4 items-center justify-center rounded-full bg-[var(--accent-light)] text-[10px] font-bold text-[var(--accent)]">
                   {[finalidade, confianca, completudeMaxima, origemFluxo, empreendimento, analistaCS].filter(Boolean).length}
                 </span>
               )}

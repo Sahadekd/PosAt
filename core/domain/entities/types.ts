@@ -651,5 +651,6 @@ export interface FiltrosCliente {
   empreendimento?: string | null;
   corretor?: string | null;
   analista_cs?: string | null;
+  responsavel_id?: string | null;
 }
 

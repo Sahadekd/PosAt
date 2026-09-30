@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { obterSessao } from "@/lib/auth/sessao";
 import { obterUsuarioPorId, resumoPublico } from "@/lib/auth/usuarios";
 import { modulosDoPapel, PAPEL_LABEL } from "@/core/domain/papeis";
+import { rotasPermitidas } from "@/lib/rbac/role-permissoes";
 
 export async function GET(request: Request) {
   const sessao = await obterSessao(request.headers.get("cookie"));
@@ -20,6 +21,7 @@ export async function GET(request: Request) {
       ...resumoPublico(usuario),
       papel_label: PAPEL_LABEL[usuario.papel],
       modulos,
+      rotas: rotasPermitidas(usuario.papel),
     },
   });
 }

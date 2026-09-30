@@ -2,19 +2,26 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  Check,
   ChevronDown,
   KeyRound,
   Loader2,
   Plus,
+  RefreshCw,
+  Save,
   ShieldCheck,
   UserPlus,
   X,
 } from "lucide-react";
 import {
+  GRUPO_ROTAS_LABEL,
   MODULO_LABEL,
+  PAPEIS,
   PAPEL_LABEL,
   modulosDoPapel,
+  type GrupoRota,
   type Papel,
+  type RotaDoSistema,
 } from "@/core/domain/papeis";
 
 type UsuarioAdmin = {
@@ -37,6 +44,8 @@ type RegistroAuditoria = {
   em: string;
 };
 
+type MatrizPermissoes = Record<Papel, string[]>;
+
 const ACAO_LABEL: Record<string, string> = {
   login: "Login",
   logout: "Logout",
@@ -47,6 +56,15 @@ const ACAO_LABEL: Record<string, string> = {
 };
 
 export default function GestaoAcessos() {
+  // Matriz de acessos (telas × cargos)
+  const [telas, setTelas] = useState<RotaDoSistema[]>([]);
+  const [permissao, setPermissao] = useState<MatrizPermissoes | null>(null);
+  const [carregandoMatriz, setCarregandoMatriz] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [sujo, setSujo] = useState(false);
+  const [aviso, setAviso] = useState<{ tipo: "sucesso" | "erro"; texto: string } | null>(null);
+
+  // Usuários e auditoria
   const [usuarios, setUsuarios] = useState<UsuarioAdmin[] | null>(null);
   const [registros, setRegistros] = useState<RegistroAuditoria[]>([]);
   const [aberto, setAberto] = useState(false);
@@ -58,7 +76,26 @@ export default function GestaoAcessos() {
   const [novoPapel, setNovoPapel] = useState<Papel>("secretaria");
   const [criando, setCriando] = useState(false);
 
-  const carregar = useCallback(async () => {
+  const carregarMatriz = useCallback(async (notificar = false) => {
+    setCarregandoMatriz(true);
+    try {
+      const resposta = await fetch("/api/permissao-rotas");
+      if (!resposta.ok) throw new Error("falha");
+      const dados = await resposta.json();
+      setTelas(dados.telas);
+      setPermissao(dados.permissao);
+      setSujo(false);
+      if (notificar) {
+        setAviso({ tipo: "sucesso", texto: "Matriz de acessos recarregada." });
+      }
+    } catch {
+      setAviso({ tipo: "erro", texto: "Não foi possível carregar a matriz de acessos." });
+    } finally {
+      setCarregandoMatriz(false);
+    }
+  }, []);
+
+  const carregarUsuarios = useCallback(async () => {
     const [resUsuarios, resAuditoria] = await Promise.all([
       fetch("/api/usuarios"),
       fetch("/api/auth/auditoria"),
@@ -75,8 +112,13 @@ export default function GestaoAcessos() {
 
   useEffect(() => {
     let ativo = true;
-    Promise.all([fetch("/api/usuarios"), fetch("/api/auth/auditoria")])
-      .then(async ([resUsuarios, resAuditoria]) => {
+    Promise.all([fetch("/api/permissao-rotas"), fetch("/api/usuarios"), fetch("/api/auth/auditoria")])
+      .then(async ([resMatriz, resUsuarios, resAuditoria]) => {
+        if (ativo && resMatriz.ok) {
+          const dados = await resMatriz.json();
+          setTelas(dados.telas);
+          setPermissao(dados.permissao);
+        }
         if (ativo && resUsuarios.ok) {
           const dados = await resUsuarios.json();
           setUsuarios(dados.usuarios);
@@ -86,11 +128,55 @@ export default function GestaoAcessos() {
           setRegistros(dados.registros);
         }
       })
-      .catch(() => undefined);
+      .catch(() => undefined)
+      .finally(() => {
+        if (ativo) setCarregandoMatriz(false);
+      });
     return () => {
       ativo = false;
     };
   }, []);
+
+  function alternarTela(papel: Papel, rota: string) {
+    if (papel === "desenvolvedor" || !permissao) return;
+    setPermissao((atual) => {
+      if (!atual) return atual;
+      const tem = atual[papel].includes(rota);
+      return {
+        ...atual,
+        [papel]: tem
+          ? atual[papel].filter((r) => r !== rota)
+          : [...atual[papel], rota],
+      };
+    });
+    setSujo(true);
+    setAviso(null);
+  }
+
+  async function salvar() {
+    if (!permissao) return;
+    setSalvando(true);
+    setAviso(null);
+    try {
+      const resposta = await fetch("/api/permissao-rotas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ permissao }),
+      });
+      const dados = await resposta.json();
+      if (!resposta.ok) throw new Error(dados.erro ?? "falha");
+      setPermissao(dados.permissao);
+      setSujo(false);
+      setAviso({
+        tipo: "sucesso",
+        texto: "Acessos salvos. As permissões valem na navegação e na proteção de rotas.",
+      });
+    } catch {
+      setAviso({ tipo: "erro", texto: "Não foi possível salvar os acessos." });
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   async function criar(e: React.FormEvent) {
     e.preventDefault();
@@ -112,7 +198,7 @@ export default function GestaoAcessos() {
       setNovoNome("");
       setNovoEmail("");
       setNovoPapel("secretaria");
-      await carregar();
+      await carregarUsuarios();
     } catch {
       setErro("Erro de conexão.");
     } finally {
@@ -126,7 +212,7 @@ export default function GestaoAcessos() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ativo: !usuario.ativo }),
     });
-    await carregar();
+    await carregarUsuarios();
   }
 
   async function mudarPapel(usuario: UsuarioAdmin, papel: Papel) {
@@ -136,31 +222,129 @@ export default function GestaoAcessos() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ papel }),
     });
-    await carregar();
+    await carregarUsuarios();
   }
 
   const totalPorPapel = (papel: Papel) =>
     (usuarios ?? []).filter((u) => u.papel === papel).length;
 
+  const grupos = (["principal", "operacao", "gestao", "conta", "portal"] as GrupoRota[]).filter(
+    (grupo) => telas.some((t) => t.grupo === grupo)
+  );
+
+  const temRotas = (papel: Papel, rota: string) =>
+    papel === "desenvolvedor" || permissao?.[papel]?.includes(rota) === true;
+
   return (
     <div className="space-y-5">
-      {/* Resumo por perfil */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-        {(["desenvolvedor", "gerente", "secretaria", "corretor", "cliente"] as Papel[]).map(
-          (papel) => (
-            <div
-              key={papel}
-              className="rounded-xl border border-[var(--border)] bg-[var(--inset)] px-4 py-3"
-            >
-              <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
-                {PAPEL_LABEL[papel]}
-              </p>
-              <p className="mt-1 text-lg font-bold text-[var(--text-primary)]">
-                {totalPorPapel(papel)}
+      {/* Matriz de acessos por tela e cargo (modelo Flow63) */}
+      <div className="overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--inset)]">
+        <div className="border-b border-[var(--border)] px-5 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
+                <ShieldCheck className="h-4 w-4 text-[var(--accent)]" />
+                Acessos por tela e cargo
+              </h2>
+              <p className="mt-1 max-w-lg text-xs leading-relaxed text-[var(--text-muted)]">
+                Marque quais telas cada cargo pode visualizar. As alterações refletem na
+                navegação e na proteção de rotas imediatamente.
               </p>
             </div>
-          )
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => carregarMatriz(true)}
+                disabled={carregandoMatriz}
+                className="flex h-9 items-center gap-2 rounded-lg border border-[var(--border)] px-3 text-xs font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${carregandoMatriz ? "animate-spin" : ""}`} />
+                Recarregar
+              </button>
+              <button
+                onClick={salvar}
+                disabled={!sujo || salvando || carregandoMatriz}
+                className="flex h-9 items-center gap-2 rounded-lg bg-[var(--accent)] px-3.5 text-xs font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {salvando ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="h-4 w-4" />
+                )}
+                Salvar alterações
+              </button>
+            </div>
+          </div>
+
+          {aviso && (
+            <div
+              className={`mt-3 rounded-lg border px-3 py-2 text-xs ${
+                aviso.tipo === "erro"
+                  ? "border-[var(--danger-border)] bg-[var(--danger-light)] text-[var(--danger)]"
+                  : "border-[var(--success-border)] bg-[var(--success-light)] text-[var(--success)]"
+              }`}
+            >
+              {aviso.texto}
+            </div>
+          )}
+
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-[var(--warning-border)] bg-[var(--warning-light)] px-3 py-2 text-xs leading-relaxed text-[var(--warning)]">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>
+              O cargo <strong>Desenvolvedor</strong> é protegido e mantém acesso total a todas
+              as telas. Apenas Gerente e Desenvolvedor podem editar esta matriz.
+            </span>
+          </div>
+        </div>
+
+        {carregandoMatriz && !permissao ? (
+          <div className="flex h-40 items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-[var(--text-muted)]" />
+          </div>
+        ) : (
+          <div className="max-h-[26rem] overflow-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="sticky top-0 z-10">
+                <tr className="bg-[var(--inset)] text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+                  <th className="sticky left-0 z-10 border-r border-b border-[var(--border)] bg-[var(--inset)] px-5 py-2.5">
+                    Tela
+                  </th>
+                  {PAPEIS.map((papel) => (
+                    <th
+                      key={papel}
+                      className={`border-b border-[var(--border)] px-3 py-2.5 text-center ${
+                        papel === "desenvolvedor" ? "opacity-70" : ""
+                      }`}
+                    >
+                      {PAPEL_LABEL[papel]}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {grupos.map((grupo) => (
+                  <GrupoMatriz key={grupo} grupo={grupo} />
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
+      </div>
+
+      {/* Resumo por perfil */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+        {(PAPEIS as Papel[]).map((papel) => (
+          <div
+            key={papel}
+            className="rounded-xl border border-[var(--border)] bg-[var(--inset)] px-4 py-3"
+          >
+            <p className="text-[11px] font-medium uppercase tracking-wide text-[var(--text-muted)]">
+              {PAPEL_LABEL[papel]}
+            </p>
+            <p className="mt-1 text-lg font-bold text-[var(--text-primary)]">
+              {totalPorPapel(papel)}
+            </p>
+          </div>
+        ))}
       </div>
 
       {erro && (
@@ -173,14 +357,14 @@ export default function GestaoAcessos() {
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--inset)]">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--border)] px-5 py-4">
           <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
-            <ShieldCheck className="h-4 w-4 text-[var(--accent)]" />
+            <UserPlus className="h-4 w-4 text-[var(--accent)]" />
             Usuários e permissões
           </h2>
           <button
             onClick={() => setAberto(true)}
             className="flex items-center gap-2 rounded-lg bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-[var(--accent-hover)]"
           >
-            <UserPlus className="h-4 w-4" />
+            <Plus className="h-4 w-4" />
             Novo usuário
           </button>
         </div>
@@ -350,7 +534,7 @@ export default function GestaoAcessos() {
               <button
                 onClick={() => setAberto(false)}
                 aria-label="Fechar"
-                className="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+                className="rounded-lg p-2 text-[var(--text-muted)] hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -426,4 +610,52 @@ export default function GestaoAcessos() {
       )}
     </div>
   );
+
+  function GrupoMatriz({ grupo }: { grupo: GrupoRota }) {
+    const grupoTelas = telas.filter((t) => t.grupo === grupo);
+    if (grupoTelas.length === 0) return null;
+    return (
+      <>
+        <tr className="bg-[var(--surface)]">
+          <td
+            colSpan={PAPEIS.length + 1}
+            className="sticky left-0 border-b border-r border-[var(--border)] bg-[var(--surface)] px-5 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)]"
+          >
+            {GRUPO_ROTAS_LABEL[grupo]}
+          </td>
+        </tr>
+        {grupoTelas.map((tela) => (
+          <tr key={tela.rota} className="bg-[var(--inset)]">
+            <td className="sticky left-0 border-r border-b border-[var(--border)] bg-[var(--inset)] px-5 py-2.5">
+              <p className="text-xs font-semibold text-[var(--text-primary)]">{tela.label}</p>
+              <p className="font-mono text-[10px] text-[var(--text-muted)]">{tela.rota}</p>
+            </td>
+            {PAPEIS.map((papel) => {
+              const ligada = temRotas(papel, tela.rota);
+              const protegida = papel === "desenvolvedor";
+              return (
+                <td key={papel} className="border-b border-[var(--border)] px-3 py-2.5 text-center">
+                  <button
+                    onClick={() => alternarTela(papel, tela.rota)}
+                    disabled={protegida}
+                    aria-label={`${PAPEL_LABEL[papel]} ${ligada ? "sem" : "com"} acesso a ${tela.label}`}
+                    aria-pressed={ligada}
+                    className={`inline-flex h-6 w-6 items-center justify-center rounded-md border transition-colors ${
+                      ligada
+                        ? "border-[var(--accent-border)] bg-[var(--accent)] text-white"
+                        : protegida
+                          ? "border-[var(--border)] bg-[var(--inset)]"
+                          : "border-[var(--border)] bg-[var(--surface)] text-transparent hover:border-[var(--border-strong)]"
+                    }`}
+                  >
+                    <Check className={`h-3.5 w-3.5 ${ligada || protegida ? "" : "opacity-0"}`} />
+                  </button>
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </>
+    );
+  }
 }

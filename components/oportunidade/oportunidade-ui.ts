@@ -6,27 +6,27 @@ import {
 export const TIPO_LABEL: Record<TipoOportunidade, { label: string; badge: string }> = {
   recompra: {
     label: "Recompra",
-    badge: "bg-sky-500/15",
+    badge: "bg-sky-50",
   },
   upgrade: {
     label: "Upgrade",
-    badge: "bg-indigo-500/15",
+    badge: "bg-indigo-50",
   },
   investimento_novo: {
     label: "Investimento",
-    badge: "bg-emerald-500/15",
+    badge: "bg-emerald-50",
   },
   indicacao: {
     label: "Indicação",
-    badge: "bg-violet-500/15",
+    badge: "bg-violet-50",
   },
   servicos: {
     label: "Serviços",
-    badge: "bg-amber-500/15",
+    badge: "bg-amber-50",
   },
   outro: {
     label: "Outro",
-    badge: "bg-slate-700/60",
+    badge: "bg-[var(--inset)]",
   },
 };
 
@@ -77,18 +77,18 @@ export const STATUS_CONVERTIDAS = new Set(["convertida"]);
 export const STATUS_ENCERRADAS = new Set(["encerrada", "ganha", "perdida", "arquivada"]);
 
 export const STAGE: Record<string, { text: string; bg: string; dot: string }> = {
-  identificada: { text: "text-sky-300", bg: "bg-sky-500/15", dot: "bg-sky-400" },
-  em_andamento: { text: "text-sky-300", bg: "bg-sky-500/15", dot: "bg-sky-400" },
-  aguardando_decisao: { text: "text-amber-300", bg: "bg-amber-500/15", dot: "bg-amber-400" },
-  em_avaliacao: { text: "text-sky-300", bg: "bg-sky-500/15", dot: "bg-sky-400" },
-  proposta_enviada: { text: "text-sky-300", bg: "bg-sky-500/15", dot: "bg-sky-400" },
-  negociacao: { text: "text-amber-300", bg: "bg-amber-500/15", dot: "bg-amber-400" },
-  convertida: { text: "text-emerald-300", bg: "bg-emerald-500/15", dot: "bg-emerald-400" },
-  ganha: { text: "text-emerald-300", bg: "bg-emerald-500/15", dot: "bg-emerald-400" },
-  removida: { text: "text-rose-300", bg: "bg-rose-500/15", dot: "bg-rose-400" },
-  perdida: { text: "text-rose-300", bg: "bg-rose-500/15", dot: "bg-rose-400" },
-  encerrada: { text: "text-slate-300", bg: "bg-slate-700/60", dot: "bg-slate-500" },
-  arquivada: { text: "text-slate-300", bg: "bg-slate-700/60", dot: "bg-slate-500" },
+  identificada: { text: "text-sky-700", bg: "bg-sky-50", dot: "bg-sky-500" },
+  em_andamento: { text: "text-sky-700", bg: "bg-sky-50", dot: "bg-sky-500" },
+  aguardando_decisao: { text: "text-amber-700", bg: "bg-amber-50", dot: "bg-amber-500" },
+  em_avaliacao: { text: "text-sky-700", bg: "bg-sky-50", dot: "bg-sky-500" },
+  proposta_enviada: { text: "text-sky-700", bg: "bg-sky-50", dot: "bg-sky-500" },
+  negociacao: { text: "text-amber-700", bg: "bg-amber-50", dot: "bg-amber-500" },
+  convertida: { text: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500" },
+  ganha: { text: "text-emerald-700", bg: "bg-emerald-50", dot: "bg-emerald-500" },
+  removida: { text: "text-rose-700", bg: "bg-rose-50", dot: "bg-rose-500" },
+  perdida: { text: "text-rose-700", bg: "bg-rose-50", dot: "bg-rose-500" },
+  encerrada: { text: "text-[var(--text-secondary)]", bg: "bg-[var(--inset)]", dot: "bg-slate-400" },
+  arquivada: { text: "text-[var(--text-secondary)]", bg: "bg-[var(--inset)]", dot: "bg-slate-400" },
 };
 
 export const PROXIMO_PASSO_STATUS: Record<string, string | null> = {

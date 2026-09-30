@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { criarClienteUseCase, listarClientesUseCase } from "@/core/container";
+import { usuarioAutenticado } from "@/lib/auth/autorizacao";
+import { FiltrosCliente } from "@/core/domain/entities/types";
 
 const clienteSchema = z.object({
   nome: z.string().trim().min(1).optional(),
@@ -108,14 +110,27 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
 
-    const filtros = {
+    const sessao = await usuarioAutenticado(request);
+    if (!sessao) {
+      return NextResponse.json({ erro: "Não autenticado." }, { status: 401 });
+    }
+
+    const filtros: FiltrosCliente = {
       finalidade: searchParams.get("finalidade"),
       status: searchParams.get("status"),
       regiao: searchParams.get("regiao"),
       confianca: searchParams.get("confianca"),
       completude_maxima: searchParams.get("completude_maxima"),
       busca: searchParams.get("busca"),
+      corretor: searchParams.get("corretor"),
+      analista_cs: searchParams.get("analista_cs"),
+      empreendimento: searchParams.get("empreendimento"),
     };
+
+    // Segregação por responsável: o corretor enxerga apenas os clientes próprios.
+    if (sessao.papel === "corretor") {
+      filtros.responsavel_id = sessao.usuario.vendedor_id ?? "__sem_responsavel__";
+    }
 
     const clientes = await listarClientesUseCase.execute(filtros);
     return NextResponse.json({ clientes });

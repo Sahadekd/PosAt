@@ -70,13 +70,13 @@ export default function OportunidadeCard({
   return (
     <div
       onClick={aoAbrir}
-      className="flex cursor-pointer flex-col gap-2.5 rounded-2xl border border-slate-800/60 bg-[#161F33] p-4 transition-all hover:border-slate-700/80 hover:shadow-lg hover:shadow-black/20"
+      className="flex cursor-pointer flex-col gap-2.5 rounded-2xl border border-[var(--border)] bg-[var(--white)] p-4 transition-all hover:border-[var(--border-strong)] hover:shadow-lg hover:shadow-black/20"
     >
       {/* Linha 1: tipo + origem (secundário) · kebab */}
       <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-400">
+        <div className="flex min-w-0 items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-[var(--text-muted)]">
           <span>{TIPO_LABEL[o.tipo]?.label || "Outro"}</span>
-          <span className="text-slate-600">•</span>
+          <span className="text-[var(--text-muted)]">•</span>
           <span className="normal-case tracking-normal">{ORIGEM_LABEL[o.origem] || "Outro"}</span>
         </div>
         <div className="relative shrink-0">
@@ -86,14 +86,14 @@ export default function OportunidadeCard({
               setMenuAberto(!menuAberto);
             }}
             aria-label="Ações da oportunidade"
-            className="rounded-lg border border-transparent p-1.5 text-slate-400 transition hover:border-slate-700/80 hover:bg-slate-900/40 hover:text-white"
+            className="rounded-lg border border-transparent p-1.5 text-[var(--text-muted)] transition hover:border-[var(--border-strong)] hover:bg-[var(--inset)]/60 hover:text-[var(--text-primary)]"
           >
             <MoreHorizontal className="h-4 w-4" />
           </button>
 
           {menuAberto && (
             <div
-              className="absolute right-0 top-10 z-20 w-56 overflow-hidden rounded-2xl border border-slate-700/80 bg-[#0D1320] py-1.5 text-sm shadow-2xl shadow-black/40"
+              className="absolute right-0 top-10 z-20 w-56 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--white)] py-1.5 text-sm shadow-xl shadow-black/10"
               onClick={(e) => e.stopPropagation()}
             >
               <button
@@ -101,9 +101,9 @@ export default function OportunidadeCard({
                   fecharMenu();
                   aoAbrir();
                 }}
-                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-semibold text-slate-200 transition hover:bg-slate-800"
+                className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-semibold text-[var(--text-primary)] transition hover:bg-[var(--inset)]"
               >
-                <Target className="h-3.5 w-3.5 text-sky-400" />
+                <Target className="h-3.5 w-3.5 text-[var(--accent)]" />
                 Abrir detalhes
               </button>
               {grupo === "ativas" && proximo && aoAvancar && (
@@ -112,9 +112,9 @@ export default function OportunidadeCard({
                     fecharMenu();
                     aoAvancar();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-semibold text-slate-200 transition hover:bg-slate-800"
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-semibold text-[var(--text-primary)] transition hover:bg-[var(--inset)]"
                 >
-                  <ArrowRight className="h-3.5 w-3.5 text-sky-400" />
+                  <ArrowRight className="h-3.5 w-3.5 text-[var(--accent)]" />
                   Avançar para {STATUS_LABEL[proximo]}
                 </button>
               )}
@@ -148,9 +148,9 @@ export default function OportunidadeCard({
                     fecharMenu();
                     aoReabrir();
                   }}
-                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-semibold text-slate-200 transition hover:bg-slate-800"
+                  className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left font-semibold text-[var(--text-primary)] transition hover:bg-[var(--inset)]"
                 >
-                  <RotateCcw className="h-3.5 w-3.5 text-sky-400" />
+                  <RotateCcw className="h-3.5 w-3.5 text-[var(--accent)]" />
                   Reavaliar (reabrir)
                 </button>
               )}
@@ -161,7 +161,7 @@ export default function OportunidadeCard({
 
       {/* Cliente */}
       <div className="flex items-center gap-2.5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-800 text-[11px] font-black text-sky-300">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--inset)] text-[11px] font-black text-[var(--accent)]">
           {(o.cliente?.nome || "Cliente")
             .split(" ")
             .slice(0, 2)
@@ -173,32 +173,32 @@ export default function OportunidadeCard({
             <Link
               href={`/clientes/${o.cliente.id}`}
               onClick={(e) => e.stopPropagation()}
-              className="block truncate text-sm font-black text-white transition hover:text-sky-300 hover:underline"
+              className="block truncate text-sm font-black text-[var(--text-primary)] transition hover:text-[var(--accent-hover)] hover:underline"
             >
               {o.cliente.nome || "Cliente"}
             </Link>
           ) : (
-            <span className="block truncate text-sm font-black text-white">{o.descricao}</span>
+            <span className="block truncate text-sm font-black text-[var(--text-primary)]">{o.descricao}</span>
           )}
           {o.cliente?.id && (
-            <span className="block truncate text-[11px] text-slate-500">{o.descricao}</span>
+            <span className="block truncate text-[11px] text-[var(--text-muted)]">{o.descricao}</span>
           )}
         </div>
       </div>
 
       {/* Empreendimento */}
       {evento && (
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-300">
-          <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-slate-500" />
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+          <Building2 className="h-3.5 w-3.5 flex-shrink-0 text-[var(--text-muted)]" />
           <span className="truncate">{evento}</span>
         </div>
       )}
 
-      <div className="my-1 border-t border-slate-800/70" />
+      <div className="my-1 border-t border-[var(--border)]" />
 
       {/* Etapa (cor principal) + próximo passo */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-700/50 px-2.5 py-1 text-[11px] font-bold">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] font-bold">
           <span className={`h-1.5 w-1.5 rounded-full ${stage.dot}`} />
           <span className={stage.text}>{STATUS_LABEL[o.status] || o.status}</span>
         </span>
@@ -208,7 +208,7 @@ export default function OportunidadeCard({
               e.stopPropagation();
               aoAvancar();
             }}
-            className="flex items-center gap-1 rounded-full border border-slate-700/50 px-2.5 py-1 text-[10px] font-bold text-slate-300 transition hover:border-sky-500/50 hover:text-sky-300"
+            className="flex items-center gap-1 rounded-full border border-[var(--border)] px-2.5 py-1 text-[10px] font-bold text-[var(--text-secondary)] transition hover:border-sky-500/50 hover:text-[var(--accent-hover)]"
           >
             Próx. {STATUS_LABEL[proximo]}
             <ArrowRight className="h-3 w-3" />
@@ -219,17 +219,17 @@ export default function OportunidadeCard({
       {/* Próxima ação · Valor */}
       <div className="flex items-center justify-between gap-3">
         {o.proximo_passo ? (
-          <span className="flex items-center gap-1.5 truncate text-xs text-slate-400">
-            <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-slate-500" />
+          <span className="flex items-center gap-1.5 truncate text-xs text-[var(--text-muted)]">
+            <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-[var(--text-muted)]" />
             <span className="truncate">{o.proximo_passo}</span>
           </span>
         ) : o.prazo_em ? (
           <span
             className={`flex items-center gap-1.5 text-xs ${
-              vencida ? "font-bold text-rose-400" : "text-slate-400"
+              vencida ? "font-bold text-rose-400" : "text-[var(--text-muted)]"
             }`}
           >
-            <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-slate-500" />
+            <Calendar className="h-3.5 w-3.5 flex-shrink-0 text-[var(--text-muted)]" />
             {formataData(o.prazo_em)}
           </span>
         ) : (
@@ -244,8 +244,8 @@ export default function OportunidadeCard({
 
       {/* Responsável */}
       {o.vendedor?.nome && (
-        <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-          <UserRound className="h-3 w-3 text-slate-500" />
+        <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+          <UserRound className="h-3 w-3 text-[var(--text-muted)]" />
           {o.vendedor.nome}
         </div>
       )}
@@ -255,7 +255,7 @@ export default function OportunidadeCard({
         {tagsVisiveis.map((t) => (
           <span
             key={t}
-            className="rounded-full border border-slate-700/40 bg-slate-900/80 px-2 py-0.5 text-[10px] font-semibold text-slate-400"
+            className="rounded-full border border-[var(--border)] bg-[var(--inset)] px-2 py-0.5 text-[10px] font-semibold text-[var(--text-muted)]"
           >
             {t}
           </span>
@@ -266,15 +266,15 @@ export default function OportunidadeCard({
               e.stopPropagation();
               setMostrarTodasTags((v) => !v);
             }}
-            className="flex items-center gap-0.5 rounded-full border border-slate-700/50 px-2 py-0.5 text-[10px] font-bold text-slate-400 transition hover:text-slate-200"
+            className="flex items-center gap-0.5 rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px] font-bold text-[var(--text-muted)] transition hover:text-[var(--text-primary)]"
           >
             {mostrarTodasTags ? "menos" : `+${todasTags.length - 2}`}
             <ChevronDown className={`h-3 w-3 transition ${mostrarTodasTags ? "rotate-180" : ""}`} />
           </button>
         )}
         {o.regra_geradora !== "origem_manual" && (
-          <span className="ml-auto hidden items-center gap-1 text-[10px] font-semibold text-slate-500 sm:flex">
-            <Sparkles className="h-3 w-3 text-slate-600" />
+          <span className="ml-auto hidden items-center gap-1 text-[10px] font-semibold text-[var(--text-muted)] sm:flex">
+            <Sparkles className="h-3 w-3 text-[var(--text-muted)]" />
             {REGRA_LABEL[o.regra_geradora] || o.regra_geradora}
           </span>
         )}

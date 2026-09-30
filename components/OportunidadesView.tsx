@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { RefreshCw, Plus, SlidersHorizontal, X, Store, Target } from "lucide-react";
 import { executeGraphQL, QUERIES } from "@/lib/graphql-client";
 import { OportunidadeItem } from "@/lib/segmentacao/tipos";
+import { usePermissions } from "@/hooks/usePermissions";
 import NovaOportunidadeModal from "@/components/NovaOportunidadeModal";
 import OportunidadeCard from "@/components/oportunidade/OportunidadeCard";
 import OportunidadeFiltersDrawer, {
@@ -22,14 +23,16 @@ import {
 
 const FILTROS_VAZIOS: FiltrosOportunidade = { busca: "", origem: "", regra: "", vendedor: "" };
 
+export interface CallbacksOportunidade {
+  aoAvancar?: () => void;
+  aoConverter?: () => void;
+  aoRemover?: () => void;
+  aoReabrir?: () => void;
+}
+
 interface OportunidadesViewProps {
   onNavigateToVendedores: () => void;
-  onOpenDetail: (oportunidade: OportunidadeItem, callbacks: {
-    aoAvancar: () => void;
-    aoConverter: () => void;
-    aoRemover: () => void;
-    aoReabrir: () => void;
-  }) => void;
+  onOpenDetail: (oportunidade: OportunidadeItem, callbacks: CallbacksOportunidade) => void;
   onCloseDetail: () => void;
   onOpenRemoverModal: (oportunidade: OportunidadeItem) => void;
   onOpenConverterModal: (oportunidade: OportunidadeItem) => void;
@@ -39,6 +42,9 @@ interface OportunidadesViewProps {
 
 export function OportunidadesView({ onNavigateToVendedores, onOpenDetail, onCloseDetail, onOpenRemoverModal, onOpenConverterModal, onRemoverConfirm, onConverterConfirm }: OportunidadesViewProps) {
   const searchParams = useSearchParams();
+  const perms = usePermissions();
+  const podeCriar = perms.pode("oportunidades", "criar");
+  const podeOperar = perms.pode("oportunidades", "editar");
   const opIdInicial = useRef(searchParams.get("oportunidade"));
   const [oportunidades, setOportunidades] = useState<OportunidadeItem[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -104,11 +110,11 @@ export function OportunidadesView({ onNavigateToVendedores, onOpenDetail, onClos
           const alvo = dados.oportunidades.find((o) => o.id === opId);
           if (alvo) {
             setGrupo(grupoDeOportunidade(alvo.status));
-            const callbacks = {
-              aoAvancar: () => { avancarStatus(alvo); onCloseDetail?.(); },
-              aoConverter: () => { onOpenConverterModal(alvo); onCloseDetail?.(); },
-              aoRemover: () => { onOpenRemoverModal(alvo); onCloseDetail?.(); },
-              aoReabrir: () => { reabrir(alvo); onCloseDetail?.(); },
+            const callbacks: CallbacksOportunidade = {
+              aoAvancar: podeOperar ? () => { avancarStatus(alvo); onCloseDetail?.(); } : undefined,
+              aoConverter: podeOperar ? () => { onOpenConverterModal(alvo); onCloseDetail?.(); } : undefined,
+              aoRemover: podeOperar ? () => { onOpenRemoverModal(alvo); onCloseDetail?.(); } : undefined,
+              aoReabrir: podeOperar ? () => { reabrir(alvo); onCloseDetail?.(); } : undefined,
             };
             onOpenDetail(alvo, callbacks);
           }
@@ -223,14 +229,14 @@ export function OportunidadesView({ onNavigateToVendedores, onOpenDetail, onClos
   return (
     <div className="space-y-6 h-full">
       {aviso && (
-        <div className="fixed right-5 top-5 z-50 flex items-center gap-2 rounded-2xl border border-slate-700/80 bg-[#131C2E] px-4 py-3 text-sm font-medium shadow-2xl shadow-black/40 transition"
+        <div className="fixed right-5 top-5 z-50 flex items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--white)] px-4 py-3 text-sm font-medium shadow-lg shadow-black/10 transition"
           style={{
             color: aviso.ok ? "var(--text-primary)" : "var(--text-primary)",
             borderColor: aviso.ok ? "rgba(59,130,246,0.6)" : "rgba(248,113,113,0.6)",
           }}
         >
           <span>{aviso.texto}</span>
-          <button onClick={() => setAviso(null)} className="ml-1 rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-white">
+          <button onClick={() => setAviso(null)} className="ml-1 rounded p-1 text-[var(--text-muted)] hover:bg-[var(--inset)] hover:text-[var(--text-primary)]">
             <X className="h-3.5 w-3.5" />
           </button>
         </div>
@@ -256,7 +262,7 @@ export function OportunidadesView({ onNavigateToVendedores, onOpenDetail, onClos
             <RefreshCw className="h-4 w-4" />
             <span className="hidden sm:inline">Atualizar</span>
           </button>
-          <button onClick={() => setModalNova(true)} className="flex h-10 items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-bold text-white transition hover:bg-[var(--accent-hover)]">
+          <button onClick={() => setModalNova(true)} disabled={!podeCriar} className="flex h-10 items-center gap-1.5 rounded-xl bg-[var(--accent)] px-4 text-sm font-bold text-white transition hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-40">
             <Plus className="h-4 w-4" />
             Nova Oportunidade
           </button>
@@ -315,7 +321,7 @@ export function OportunidadesView({ onNavigateToVendedores, onOpenDetail, onClos
           <SlidersHorizontal className="h-4 w-4" />
           <span className="hidden sm:inline">Filtros</span>
           {filtresAtivos && (
-            <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-white/20 text-[10px] font-bold text-white">
+            <span className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--inset)] text-[10px] font-bold text-[var(--text-secondary)]">
               {[filtros.busca, filtros.origem, filtros.regra, filtros.vendedor].filter(Boolean).length}
             </span>
           )}
@@ -335,21 +341,21 @@ export function OportunidadesView({ onNavigateToVendedores, onOpenDetail, onClos
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filtradas.map((op) => {
-            const callbacks = {
-              aoAvancar: () => { avancarStatus(op); onCloseDetail?.(); },
-              aoConverter: () => { onOpenConverterModal(op); onCloseDetail?.(); },
-              aoRemover: () => { onOpenRemoverModal(op); onCloseDetail?.(); },
-              aoReabrir: () => { reabrir(op); onCloseDetail?.(); },
+            const callbacks: CallbacksOportunidade = {
+              aoAvancar: podeOperar ? () => { avancarStatus(op); onCloseDetail?.(); } : undefined,
+              aoConverter: podeOperar ? () => { onOpenConverterModal(op); onCloseDetail?.(); } : undefined,
+              aoRemover: podeOperar ? () => { onOpenRemoverModal(op); onCloseDetail?.(); } : undefined,
+              aoReabrir: podeOperar ? () => { reabrir(op); onCloseDetail?.(); } : undefined,
             };
             return (
               <OportunidadeCard
                 key={op.id}
                 oportunidade={op}
                 aoAbrir={() => onOpenDetail(op, callbacks)}
-                aoAvancar={() => avancarStatus(op)}
-                aoConverter={() => onOpenConverterModal(op)}
-                aoRemover={() => onOpenRemoverModal(op)}
-                aoReabrir={() => reabrir(op)}
+                aoAvancar={callbacks.aoAvancar}
+                aoConverter={callbacks.aoConverter}
+                aoRemover={callbacks.aoRemover}
+                aoReabrir={callbacks.aoReabrir}
               />
             );
           })}

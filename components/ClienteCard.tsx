@@ -31,55 +31,55 @@ export const finalidadeConfig: Record<
   FinalidadeCliente,
   { label: string; bg: string; text: string; border: string }
 > = {
-  primeiro_imovel:    { label: "Primeiro Imóvel",      bg: "bg-blue-500/15",      text: "text-blue-300",      border: "border-blue-500/30" },
-  moradia:            { label: "Moradia",               bg: "bg-emerald-500/15",     text: "text-emerald-300",     border: "border-emerald-500/30" },
-  investimento:       { label: "Investidor",            bg: "bg-amber-500/15",    text: "text-amber-300",    border: "border-amber-500/30" },
-  possivel_investidor:{ label: "Possível Invest.",      bg: "bg-amber-500/10",    text: "text-amber-300",    border: "border-amber-500/25" },
-  upgrade:            { label: "Upgrade",               bg: "bg-purple-500/15",    text: "text-purple-300",    border: "border-purple-500/30" },
-  segunda_residencia: { label: "2ª Residência",         bg: "bg-teal-500/15",     text: "text-teal-300",     border: "border-teal-500/30" },
-  compra_para_familiar:{ label: "Compra Familiar",       bg: "bg-indigo-500/15",  text: "text-indigo-300",  border: "border-indigo-500/30" },
-  locacao:            { label: "Locação",               bg: "bg-slate-700/40",     text: "text-slate-300",     border: "border-slate-600" },
-  imovel_comercial:   { label: "Comercial",             bg: "bg-orange-500/15",   text: "text-orange-300",   border: "border-orange-500/30" },
-  cliente_recorrente: { label: "Recorrente",            bg: "bg-emerald-500/20",  text: "text-emerald-200",  border: "border-emerald-500/30" },
-  potencial_indicacao:{ label: "Indicação",             bg: "bg-rose-500/15",     text: "text-rose-300",     border: "border-rose-500/30" },
-  nao_identificado:   { label: "Sem perfil",            bg: "bg-slate-700/40",     text: "text-slate-400",     border: "border-slate-600" },
+  primeiro_imovel:    { label: "Primeiro Imóvel",      bg: "bg-blue-50",      text: "text-blue-700",      border: "border-blue-500/30" },
+  moradia:            { label: "Moradia",               bg: "bg-emerald-50",     text: "text-emerald-700",     border: "border-emerald-500/30" },
+  investimento:       { label: "Investidor",            bg: "bg-amber-50",    text: "text-amber-700",    border: "border-amber-500/30" },
+  possivel_investidor:{ label: "Possível Invest.",      bg: "bg-amber-50",    text: "text-amber-700",    border: "border-amber-500/25" },
+  upgrade:            { label: "Upgrade",               bg: "bg-purple-50",    text: "text-purple-700",    border: "border-purple-500/30" },
+  segunda_residencia: { label: "2ª Residência",         bg: "bg-teal-50",     text: "text-teal-700",     border: "border-teal-500/30" },
+  compra_para_familiar:{ label: "Compra Familiar",       bg: "bg-indigo-50",  text: "text-indigo-700",  border: "border-indigo-500/30" },
+  locacao:            { label: "Locação",               bg: "bg-[var(--inset)]",     text: "text-[var(--text-secondary)]",     border: "border-[var(--border)]" },
+  imovel_comercial:   { label: "Comercial",             bg: "bg-orange-50",   text: "text-orange-700",   border: "border-orange-500/30" },
+  cliente_recorrente: { label: "Recorrente",            bg: "bg-emerald-50",  text: "text-emerald-700",  border: "border-emerald-500/30" },
+  potencial_indicacao:{ label: "Indicação",             bg: "bg-rose-50",     text: "text-rose-700",     border: "border-rose-500/30" },
+  nao_identificado:   { label: "Sem perfil",            bg: "bg-[var(--inset)]",     text: "text-[var(--text-secondary)]",     border: "border-[var(--border)]" },
 };
 
 export const statusConfig: Record<
   StatusRelacionamento,
   { label: string; bg: string; text: string }
 > = {
-  novo_lead:        { label: "Novo Lead",          bg: "bg-blue-500/15",    text: "text-blue-300" },
-  em_qualificacao:  { label: "Em Qualificação",    bg: "bg-amber-500/15",   text: "text-amber-300" },
-  em_negociacao:    { label: "Em Negociação",      bg: "bg-indigo-500/15",  text: "text-indigo-300" },
-  convertido:       { label: "Convertido",         bg: "bg-emerald-500/15", text: "text-emerald-300" },
-  handoff_pendente: { label: "Handoff Pendente",   bg: "bg-rose-500/15",    text: "text-rose-300" },
-  onboarding:       { label: "Onboarding",         bg: "bg-purple-500/15",  text: "text-purple-300" },
-  pos_venda:        { label: "Pós-Venda",          bg: "bg-teal-500/15",    text: "text-teal-300" },
-  cliente_ativo:    { label: "Ativo",              bg: "bg-emerald-500/15", text: "text-emerald-300" },
-  cliente_inativo:  { label: "Inativo",            bg: "bg-slate-700/40",   text: "text-slate-400" },
-  reativacao:       { label: "Reativação",         bg: "bg-yellow-500/15",  text: "text-yellow-300" },
-  sem_resposta:     { label: "Sem Resposta",       bg: "bg-slate-700/40",   text: "text-slate-400" },
-  encerrado:        { label: "Encerrado",          bg: "bg-slate-700/40",   text: "text-slate-300" },
+  novo_lead:        { label: "Novo Lead",          bg: "bg-blue-50",    text: "text-blue-700" },
+  em_qualificacao:  { label: "Em Qualificação",    bg: "bg-amber-50",   text: "text-amber-700" },
+  em_negociacao:    { label: "Em Negociação",      bg: "bg-indigo-50",  text: "text-indigo-700" },
+  convertido:       { label: "Convertido",         bg: "bg-emerald-50", text: "text-emerald-700" },
+  handoff_pendente: { label: "Handoff Pendente",   bg: "bg-rose-50",    text: "text-rose-700" },
+  onboarding:       { label: "Onboarding",         bg: "bg-purple-50",  text: "text-purple-700" },
+  pos_venda:        { label: "Pós-Venda",          bg: "bg-teal-50",    text: "text-teal-700" },
+  cliente_ativo:    { label: "Ativo",              bg: "bg-emerald-50", text: "text-emerald-700" },
+  cliente_inativo:  { label: "Inativo",            bg: "bg-[var(--inset)]",   text: "text-[var(--text-secondary)]" },
+  reativacao:       { label: "Reativação",         bg: "bg-amber-50",  text: "text-amber-700" },
+  sem_resposta:     { label: "Sem Resposta",       bg: "bg-[var(--inset)]",   text: "text-[var(--text-secondary)]" },
+  encerrado:        { label: "Encerrado",          bg: "bg-[var(--inset)]",   text: "text-[var(--text-secondary)]" },
 };
 
 export const confiancaConfig: Record<
   NivelConfianca,
   { label: string; bg: string; text: string }
 > = {
-  alta:              { label: "Alta",             bg: "bg-emerald-500/15 text-emerald-300 border-emerald-500/30",  text: "text-emerald-300" },
-  media:             { label: "Média",            bg: "bg-amber-500/15 text-amber-300 border-amber-500/30",          text: "text-amber-300" },
-  baixa:             { label: "Baixa",            bg: "bg-slate-700/40 text-slate-300 border-slate-600",             text: "text-slate-300" },
-  revisao_necessaria:{ label: "Revisão",          bg: "bg-rose-500/15 text-rose-300 border-rose-500/30",             text: "text-rose-300" },
+  alta:              { label: "Alta",             bg: "bg-emerald-50 text-emerald-700 border-emerald-500/30",  text: "text-emerald-700" },
+  media:             { label: "Média",            bg: "bg-amber-50 text-amber-700 border-amber-500/30",          text: "text-amber-700" },
+  baixa:             { label: "Baixa",            bg: "bg-[var(--inset)] text-[var(--text-secondary)] border-[var(--border)]",             text: "text-[var(--text-secondary)]" },
+  revisao_necessaria:{ label: "Revisão",          bg: "bg-rose-50 text-rose-700 border-rose-500/30",             text: "text-rose-700" },
 };
 
 export const termometroCXConfig: Record<
   string,
   { label: string; dot: string; bg: string; text: string; border: string }
 > = {
-  promotor_mgm:        { label: "Promotor / MGM",   dot: "bg-emerald-400", bg: "bg-emerald-500/15",   text: "text-emerald-200",   border: "border-emerald-500/30" },
-  neutro_nutricao:     { label: "Neutro",            dot: "bg-amber-400",   bg: "bg-amber-500/15",     text: "text-amber-200",     border: "border-amber-500/30" },
-  insatisfeito_distrato: { label: "Risco de Distrato", dot: "bg-rose-500",  bg: "bg-rose-500/15",     text: "text-rose-200",     border: "border-rose-500/30" },
+  promotor_mgm:        { label: "Promotor / MGM",   dot: "bg-emerald-500", bg: "bg-emerald-50",   text: "text-emerald-700",   border: "border-emerald-500/30" },
+  neutro_nutricao:     { label: "Neutro",            dot: "bg-amber-500",   bg: "bg-amber-50",     text: "text-amber-700",     border: "border-amber-500/30" },
+  insatisfeito_distrato: { label: "Risco de Distrato", dot: "bg-rose-500",  bg: "bg-rose-50",     text: "text-rose-700",     border: "border-rose-500/30" },
 };
 
 // ─── Avatar helper ───
@@ -94,7 +94,7 @@ function initials(name: string) {
 
 function avatarColor(name: string): string {
   const colors = [
-    "#e05b3f","#00a699","#d97706","#6366f1","#0ea5e9","#84cc16","#ec4899"
+    "#dc2626","#0d9488","#b45309","#4f46e5","#0284c7","#65a30d","#db2777"
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
@@ -139,7 +139,7 @@ export default function ClienteCard({ cliente, onAtualizado }: ClienteCardProps)
   const [modalHandoffAberto, setModalHandoffAberto] = useState(false);
 
   const nome = cliente.pessoa?.nome || "Lead Sem Nome";
-  const status = statusConfig[cliente.status] ?? { label: cliente.status, bg: "bg-slate-700/40", text: "text-slate-300" };
+  const status = statusConfig[cliente.status] ?? { label: cliente.status, bg: "bg-[var(--inset)]", text: "text-[var(--text-secondary)]" };
   const cx = cliente.termometro_cx ? termometroCXConfig[cliente.termometro_cx] : null;
 
   const empreendimento =
@@ -172,7 +172,7 @@ export default function ClienteCard({ cliente, onAtualizado }: ClienteCardProps)
         {/* Linha 1: avatar + nome + estado */}
         <div className="flex items-start gap-3">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white shadow-lg shadow-black/20"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-xs font-bold text-[var(--text-primary)] shadow-md shadow-black/10"
             style={{ background: avatarColor(nome) }}
           >
             {initials(nome)}
@@ -182,7 +182,7 @@ export default function ClienteCard({ cliente, onAtualizado }: ClienteCardProps)
             <h2 className="flex items-center gap-2 text-[15px] font-black tracking-wide leading-tight truncate text-[var(--text-primary)]">
               <Link
                 href={`/clientes/${cliente.id}`}
-                className="truncate hover:text-sky-300"
+                className="truncate hover:text-[var(--accent-hover)]"
               >
                 {nome}
               </Link>

@@ -35,6 +35,9 @@ export class ClienteRepository implements IClienteRepository {
           query = query.lte("indice_completude", max);
         }
       }
+      if (filtros?.responsavel_id) {
+        query = query.eq("responsavel_id", filtros.responsavel_id);
+      }
 
       const { data, error } = await query;
       if (!error && data) {

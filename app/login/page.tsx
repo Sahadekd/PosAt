@@ -1,6 +1,15 @@
 "use client";
 
-import { Building2, Loader2 } from "lucide-react";
+import {
+  ArrowRight,
+  Building2,
+  Eye,
+  EyeOff,
+  KeyRound,
+  Loader2,
+  Lock,
+  Mail,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -15,6 +24,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
+  const [mostrarSenha, setMostrarSenha] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -95,14 +105,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--surface)] px-4 py-10">
-      <div className="w-full max-w-[400px]">
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-lg shadow-blue-900/40">
-            <Building2 className="h-6 w-6" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--surface)] px-4 py-10">
+      <div aria-hidden className="pointer-events-none absolute inset-0">
+        <div className="login-grid absolute inset-0" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_120%_90%_at_50%_-10%,rgba(37,99,235,0.12),transparent_60%)]" />
+        <div className="login-blob -top-[12%] left-[-10%] h-[420px] w-[420px] bg-sky-400/25" />
+        <div className="login-blob -bottom-[14%] right-[-8%] h-[460px] w-[460px] bg-blue-500/25" style={{ animationDelay: "-5s" }} />
+        <div className="login-blob left-[38%] top-[52%] h-[300px] w-[300px] bg-[var(--accent)]/10" style={{ animationDelay: "-10s" }} />
+        <div className="absolute inset-0 bg-gradient-to-t from-[var(--surface)] via-transparent to-transparent" />
+      </div>
+
+      <div className="relative w-full max-w-[400px]">
+        <div className="animate-fade-up mb-8 flex flex-col items-center gap-3">
+          <div className="relative">
+            <div className="login-glow absolute inset-0 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 blur-xl" />
+            <div className="relative flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-lg shadow-blue-900/50 ring-1 ring-white/20">
+              <Building2 className="h-6 w-6" />
+            </div>
           </div>
           <div className="text-center leading-tight">
-            <span className="block text-[11px] font-bold uppercase tracking-[0.18em] text-sky-400">
+            <span className="block text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--accent)]">
               Quadra
             </span>
             <h1 className="text-xl font-bold text-[var(--text-primary)]">
@@ -114,12 +136,15 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--inset)] p-6">
+        <div
+          className="animate-fade-up rounded-2xl border border-[var(--border)] bg-[var(--side)]/95 p-6 shadow-[0_20px_60px_-20px_rgba(37,99,235,0.28)] ring-1 ring-black/5 backdrop-blur-xl"
+          style={{ animationDelay: "80ms" }}
+        >
           <h2 className="text-sm font-semibold text-[var(--text-primary)]">
             Entrar na sua conta
           </h2>
           {erro && (
-            <div className="mt-3 rounded-lg border border-[var(--danger-border)] bg-[var(--danger-light)] px-3 py-2 text-xs text-[var(--danger)]">
+            <div className="animate-slide-down mt-3 rounded-lg border border-[var(--danger-border)] bg-[var(--danger-light)] px-3 py-2 text-xs text-[var(--danger)]">
               {erro}
             </div>
           )}
@@ -128,35 +153,58 @@ export default function LoginPage() {
               <span className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
                 E-mail
               </span>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="voce@posat.local"
-                autoComplete="email"
-                className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-border)]"
-              />
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="voce@posat.local"
+                  autoComplete="email"
+                  className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] shadow-sm outline-none placeholder:text-[var(--text-muted)] transition-all hover:border-[var(--border-strong)] focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
+                />
+              </div>
             </label>
             <label className="block">
               <span className="mb-1 block text-xs font-medium text-[var(--text-secondary)]">
                 Senha
               </span>
-              <input
-                type="password"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
-                className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-border)]"
-              />
+              <div className="relative">
+                <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type={mostrarSenha ? "text" : "password"}
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-10 text-sm text-[var(--text-primary)] shadow-sm outline-none placeholder:text-[var(--text-muted)] transition-all hover:border-[var(--border-strong)] focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenha((v) => !v)}
+                  aria-label={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--text-muted)] hover:bg-white/5 hover:text-[var(--text-secondary)]"
+                >
+                  {mostrarSenha ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </label>
             <button
               type="submit"
               disabled={carregando || !email || !senha}
-              className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-[var(--accent)] text-sm font-semibold text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="group relative flex h-10 w-full items-center justify-center gap-2 overflow-hidden rounded-lg bg-gradient-to-r from-sky-500 to-blue-600 text-sm font-semibold text-white shadow-lg shadow-blue-500/25 ring-1 ring-inset ring-white/30 transition-all hover:from-sky-400 hover:to-blue-500 hover:shadow-blue-500/40 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:from-sky-500 disabled:hover:to-blue-600"
             >
-              {carregando && <Loader2 className="h-4 w-4 animate-spin" />}
-              Entrar
+              {!carregando && <span className="login-shimmer" />}
+              {carregando ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+              )}
+              {carregando ? "Entrando..." : "Entrar"}
             </button>
           </form>
 
@@ -173,23 +221,30 @@ export default function LoginPage() {
               Você é cliente? Acesse pelo link de convite
             </p>
             <form onSubmit={enviarLink} className="mt-2 flex gap-2">
-              <input
-                type="email"
-                value={emailLink}
-                onChange={(e) => setEmailLink(e.target.value)}
-                placeholder="seu@email.com"
-                className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--text-primary)] outline-none transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent-border)]"
-              />
+              <div className="relative flex-1">
+                <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--text-muted)]" />
+                <input
+                  type="email"
+                  value={emailLink}
+                  onChange={(e) => setEmailLink(e.target.value)}
+                  placeholder="seu@email.com"
+                  className="h-10 w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-3 text-sm text-[var(--text-primary)] shadow-sm outline-none placeholder:text-[var(--text-muted)] transition-all hover:border-[var(--border-strong)] focus:border-[var(--accent)] focus:shadow-[0_0_0_3px_rgba(37,99,235,0.12)]"
+                />
+              </div>
               <button
                 type="submit"
                 disabled={gerandoLink || !emailLink}
-                className="h-10 shrink-0 rounded-lg border border-[var(--accent-border)] bg-[var(--accent-light)] px-3 text-sm font-medium text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 shrink-0 rounded-lg border border-[var(--accent-border)] bg-[var(--accent-light)] px-3 text-sm font-medium text-[var(--accent)] transition-all hover:bg-[var(--accent)] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {gerandoLink ? "..." : "Enviar link"}
+                {gerandoLink ? (
+                  <Loader2 className="mx-auto h-4 w-4 animate-spin" />
+                ) : (
+                  "Enviar link"
+                )}
               </button>
             </form>
             {linkGerado && (
-              <div className="mt-3 rounded-lg border border-[var(--success-border)] bg-[var(--success-light)] px-3 py-2.5 text-xs">
+              <div className="animate-slide-down mt-3 rounded-lg border border-[var(--success-border)] bg-[var(--success-light)] px-3 py-2.5 text-xs">
                 <p className="mb-1 font-medium text-[var(--success)]">
                   Link gerado (ambiente de teste)
                 </p>
@@ -204,12 +259,18 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--inset)] px-4 py-3 text-[11px] leading-relaxed text-[var(--text-muted)]">
+        <div
+          className="animate-fade-up mt-4 rounded-xl border border-[var(--border)] bg-[var(--side)]/80 px-4 py-3 text-[11px] leading-relaxed text-[var(--text-muted)] backdrop-blur-md"
+          style={{ animationDelay: "160ms" }}
+        >
           <p className="mb-1 font-semibold uppercase tracking-wide text-[var(--text-secondary)]">
             Contas de demonstração
           </p>
           <p>
-            Todos os perfis usam a senha <code className="rounded bg-[var(--surface)] px-1.5 py-0.5 text-[var(--accent)]">token123</code>
+            Todos os perfis usam a senha{" "}
+            <code className="rounded bg-[var(--inset)] px-1.5 py-0.5 font-medium text-[var(--accent)]">
+              token123
+            </code>
           </p>
           <ul className="mt-1 space-y-0.5">
             <li>desenvolvedor@posat.local · Desenvolvedor</li>
