@@ -70,6 +70,7 @@ import {
   DuplicarFluxoUseCase,
   DeletarFluxoUseCase,
   AplicarTemplateUseCase,
+  IniciarExecucaoUseCase,
 } from "./use-cases/FluxoCrud";
 import {
   ExecutarFluxoUseCase,
@@ -185,6 +186,7 @@ export const atualizarFluxoUseCase = new AtualizarFluxoUseCase(fluxoRepo);
 export const duplicarFluxoUseCase = new DuplicarFluxoUseCase(fluxoRepo);
 export const deletarFluxoUseCase = new DeletarFluxoUseCase(fluxoRepo);
 export const aplicarTemplateUseCase = new AplicarTemplateUseCase(fluxoRepo, fluxoExecucaoRepo);
+export const iniciarExecucaoUseCase = new IniciarExecucaoUseCase(fluxoRepo, fluxoExecucaoRepo);
 
 export const executarFluxoUseCase = new ExecutarFluxoUseCase(
   fluxoRepo,
