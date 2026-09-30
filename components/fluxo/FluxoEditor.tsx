@@ -20,6 +20,7 @@ import {
   Ban,
   ExternalLink,
   UserPlus,
+  AlignHorizontalDistributeCenter,
 } from "lucide-react";
 import { FluxoCanvas, type FluxoCanvasHandle } from "./FluxoCanvas";
 import { LinhaTempoView } from "./LinhaTempoView";
@@ -362,6 +363,17 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
             Etapas
           </button>
         </div>
+
+        {/* Organizar nós na horizontal */}
+        <button
+          onClick={() => canvasRef.current?.organizar()}
+          disabled={modoVisao !== "grafo"}
+          title="Organizar os nós na horizontal (esquerda → direita), estilo n8n"
+          className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-xs font-semibold text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-45"
+        >
+          <AlignHorizontalDistributeCenter className="h-3.5 w-3.5" />
+          Organizar
+        </button>
 
         <button
           onClick={salvar}
