@@ -32,10 +32,10 @@ const OportunidadeConverterModal = Dynamic(() => import("./oportunidade/Oportuni
 type View = "oportunidades" | "vendedores";
 
 interface OportunidadeDetailCallbacks {
-  aoAvancar: () => void;
-  aoConverter: () => void;
-  aoRemover: () => void;
-  aoReabrir: () => void;
+  aoAvancar?: () => void;
+  aoConverter?: () => void;
+  aoRemover?: () => void;
+  aoReabrir?: () => void;
 }
 
 export default function OportunidadesVendedoresSlider() {

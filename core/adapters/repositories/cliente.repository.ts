@@ -81,6 +81,9 @@ export class ClienteRepository implements IClienteRepository {
           );
         }
       }
+      if (filtros?.responsavel_id) {
+        query = query.eq("responsavel_id", filtros.responsavel_id);
+      }
 
       if (items) {
         if (filtros?.busca) {

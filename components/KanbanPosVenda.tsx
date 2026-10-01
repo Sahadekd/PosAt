@@ -24,16 +24,16 @@ interface Coluna {
 }
 
 const COLUNAS: Coluna[] = [
-  { id: "novo_lead", titulo: "Novo Lead", statusList: ["novo_lead"], accent: "#94a3b8", badge: "bg-slate-500/15 text-slate-300" },
-  { id: "qualificacao", titulo: "Qualificação", statusList: ["em_qualificacao"], accent: "#0ea5e9", badge: "bg-sky-500/15 text-sky-300" },
-  { id: "negociacao", titulo: "Negociação", statusList: ["em_negociacao"], accent: "#8b5cf6", badge: "bg-violet-500/15 text-violet-300" },
-  { id: "convertido", titulo: "Convertido", statusList: ["convertido"], accent: "#06b6d4", badge: "bg-cyan-500/15 text-cyan-300" },
-  { id: "handoff", titulo: "Handoff", statusList: ["handoff_pendente"], accent: "#f59e0b", badge: "bg-amber-500/15 text-amber-300" },
-  { id: "onboarding", titulo: "Onboarding", statusList: ["onboarding"], accent: "#3b82f6", badge: "bg-blue-500/15 text-blue-300" },
-  { id: "pos_venda", titulo: "Pós-venda", statusList: ["pos_venda"], accent: "#10b981", badge: "bg-emerald-500/15 text-emerald-300" },
-  { id: "cliente_ativo", titulo: "Cliente Ativo", statusList: ["cliente_ativo"], accent: "#14b8a6", badge: "bg-teal-500/15 text-teal-300" },
-  { id: "reativacao", titulo: "Reativação / Inativo", statusList: ["reativacao", "cliente_inativo", "sem_resposta"], accent: "#f43f5e", badge: "bg-rose-500/15 text-rose-300" },
-  { id: "encerrado", titulo: "Encerrado", statusList: ["encerrado"], accent: "#64748b", badge: "bg-slate-500/15 text-slate-300" },
+  { id: "novo_lead", titulo: "Novo Lead", statusList: ["novo_lead"], accent: "#64748b", badge: "bg-[var(--inset)] text-[var(--text-secondary)]" },
+  { id: "qualificacao", titulo: "Qualificação", statusList: ["em_qualificacao"], accent: "#0284c7", badge: "bg-[var(--accent-light)] text-[var(--accent)]" },
+  { id: "negociacao", titulo: "Negociação", statusList: ["em_negociacao"], accent: "#7c3aed", badge: "bg-purple-50 text-purple-700" },
+  { id: "convertido", titulo: "Convertido", statusList: ["convertido"], accent: "#0891b2", badge: "bg-cyan-50 text-cyan-700" },
+  { id: "handoff", titulo: "Handoff", statusList: ["handoff_pendente"], accent: "#d97706", badge: "bg-amber-50 text-amber-700" },
+  { id: "onboarding", titulo: "Onboarding", statusList: ["onboarding"], accent: "#2563eb", badge: "bg-blue-50 text-blue-700" },
+  { id: "pos_venda", titulo: "Pós-venda", statusList: ["pos_venda"], accent: "#059669", badge: "bg-emerald-50 text-emerald-700" },
+  { id: "cliente_ativo", titulo: "Cliente Ativo", statusList: ["cliente_ativo"], accent: "#14b8a6", badge: "bg-teal-50 text-teal-700" },
+  { id: "reativacao", titulo: "Reativação / Inativo", statusList: ["reativacao", "cliente_inativo", "sem_resposta"], accent: "#e11d48", badge: "bg-rose-50 text-rose-700" },
+  { id: "encerrado", titulo: "Encerrado", statusList: ["encerrado"], accent: "#64748b", badge: "bg-[var(--inset)] text-[var(--text-secondary)]" },
 ];
 
 export default function KanbanPosVenda() {
@@ -198,7 +198,7 @@ export default function KanbanPosVenda() {
                         className={`relative flex cursor-grab flex-col gap-2 overflow-hidden rounded-xl border bg-[var(--white)] p-3 pl-4 shadow-sm transition active:cursor-grabbing ${
                           estaArrastando
                             ? "scale-[1.01] opacity-40 shadow-lg"
-                            : "hover:border-[var(--border-strong)] hover:shadow-lg hover:shadow-black/20"
+                            : "hover:border-[var(--border-strong)] hover:shadow-md hover:shadow-black/10"
                         } ${emRisco ? "border-[var(--danger-border)] ring-1 ring-[var(--danger-border)]" : "border-[var(--border)]"}`}
                       >
                         <span className="absolute bottom-0 left-0 top-0 w-1" style={{ background: col.accent }} />

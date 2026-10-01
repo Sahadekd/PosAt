@@ -145,19 +145,19 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
                   imoveis: imoveisDoVendedor(v),
                   oportunidades: oportunidadesDoVendedor(v)
                 })}
-                className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-slate-800/60 bg-[#161F33] p-4 transition-all hover:border-slate-700/80 hover:shadow-lg hover:shadow-black/20"
+                className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--white)] p-4 transition-all hover:border-[var(--border-strong)] hover:shadow-lg hover:shadow-black/10"
               >
                 {/* Vendedor */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-slate-800 text-sm font-black text-sky-300">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--inset)] text-sm font-black text-[var(--accent)]">
                       {iniciais(v.nome)}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="truncate text-sm font-black tracking-wide text-white">
+                      <h3 className="truncate text-sm font-black tracking-wide text-[var(--text-primary)]">
                         {v.nome}
                       </h3>
-                      <p className="text-xs text-slate-500">
+                      <p className="text-xs text-[var(--text-muted)]">
                         {v.creci ? `CREci ${v.creci}` : "Sem CREci"}
                       </p>
                     </div>
@@ -165,8 +165,8 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
                   <span
                     className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
                       v.status === "ativo"
-                        ? "bg-emerald-500/15 text-emerald-300"
-                        : "bg-slate-700/40 text-slate-400"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-[var(--inset)] text-[var(--text-muted)]"
                     }`}
                   >
                     {v.status === "ativo" ? "Ativo" : "Inativo"}
@@ -175,37 +175,37 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
 
                 {/* Contato */}
                 {(v.telefone || v.email) && (
-                  <div className="space-y-1 text-xs text-slate-400">
+                  <div className="space-y-1 text-xs text-[var(--text-muted)]">
                     {v.telefone && (
                       <div className="flex items-center gap-2">
-                        <PhoneCall className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                        <PhoneCall className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
                         {v.telefone}
                       </div>
                     )}
                     {v.email && (
                       <div className="flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5 shrink-0 text-slate-500" />
+                        <Mail className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
                         <span className="truncate">{v.email}</span>
                       </div>
                     )}
                   </div>
                 )}
 
-                <div className="my-1 border-t border-slate-800/70" />
+                <div className="my-1 border-t border-[var(--border)]" />
 
                 {/* Métricas */}
-                <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-800/60 bg-[#131C2E]">
+                <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--white)]">
                   <div className="flex items-center gap-2 px-3 py-2.5">
-                    <Building2 className="h-4 w-4 shrink-0 text-sky-400" />
-                    <span className="text-xs text-slate-500">
-                      <strong className="block text-sm font-extrabold text-white">{totals.imoveis}</strong>
+                    <Building2 className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                    <span className="text-xs text-[var(--text-muted)]">
+                      <strong className="block text-sm font-extrabold text-[var(--text-primary)]">{totals.imoveis}</strong>
                       imóveis
                     </span>
                   </div>
-                  <div className="flex items-center gap-2 border-l border-slate-800/60 px-3 py-2.5">
-                    <Target className="h-4 w-4 shrink-0 text-sky-400" />
-                    <span className="text-xs text-slate-500">
-                      <strong className="block text-sm font-extrabold text-white">{totals.oportunidades}</strong>
+                  <div className="flex items-center gap-2 border-l border-[var(--border)] px-3 py-2.5">
+                    <Target className="h-4 w-4 shrink-0 text-[var(--accent)]" />
+                    <span className="text-xs text-[var(--text-muted)]">
+                      <strong className="block text-sm font-extrabold text-[var(--text-primary)]">{totals.oportunidades}</strong>
                       oportunidades
                     </span>
                   </div>
@@ -214,11 +214,11 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
                 {/* Rodapé */}
                 <div className="flex items-center justify-between gap-2">
                   {valorOportunidades > 0 ? (
-                    <span className="truncate text-xs font-extrabold text-emerald-400">
+                    <span className="truncate text-xs font-extrabold text-emerald-600">
                       {formataMoeda(valorOportunidades)} em jogo
                     </span>
                   ) : <span />}
-                  <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-bold text-slate-500 transition group-hover:text-slate-300">
+                  <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-bold text-[var(--text-muted)] transition group-hover:text-[var(--text-secondary)]">
                     Ver detalhes
                     <ChevronRight className="h-3 w-3" />
                   </span>

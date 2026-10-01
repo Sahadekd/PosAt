@@ -108,6 +108,7 @@ const INITIAL_CLIENTES: ClienteCompleto[] = [
   {
     id: "c-001",
     pessoa_id: "p-001",
+    responsavel_id: "ven-001",
     status: "em_negociacao",
     finalidade_principal: "investimento",
     finalidades_secundarias: [],
@@ -198,6 +199,7 @@ const INITIAL_CLIENTES: ClienteCompleto[] = [
   {
     id: "c-004",
     pessoa_id: "p-004",
+    responsavel_id: "ven-001",
     status: "em_qualificacao",
     finalidade_principal: "primeiro_imovel",
     finalidades_secundarias: ["moradia"],
@@ -257,6 +259,7 @@ const INITIAL_CLIENTES: ClienteCompleto[] = [
   {
     id: "c-006",
     pessoa_id: "p-006",
+    responsavel_id: "ven-001",
     status: "novo_lead",
     finalidade_principal: "nao_identificado",
     finalidades_secundarias: [],
@@ -1223,6 +1226,7 @@ class StorageMemoryFallback {
     confianca?: string | null;
     completude_maxima?: string | null;
     busca?: string | null;
+    responsavel_id?: string | null;
   }) {
     let list = this.clientes.map((c) => {
       const pessoa = this.pessoas.find((p) => p.id === c.pessoa_id);
@@ -1264,6 +1268,9 @@ class StorageMemoryFallback {
           c.tipo_imovel?.toLowerCase().includes(busca) ||
           c.bairro_interesse?.toLowerCase().includes(busca)
       );
+    }
+    if (filtros?.responsavel_id) {
+      list = list.filter((c) => c.responsavel_id === filtros.responsavel_id);
     }
 
     return list.sort(
