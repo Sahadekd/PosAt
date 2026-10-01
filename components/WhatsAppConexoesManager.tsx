@@ -11,6 +11,10 @@ import {
   Unlink,
   Loader2,
 } from "lucide-react";
+import {
+  buildWhatsAppRequestHeaders,
+  resolveWhatsAppOwnerFromStorage,
+} from "@/lib/whatsapp-access";
 import { formatarHorario } from "@/lib/whatsapp";
 
 type StatusConexao =
@@ -41,6 +45,10 @@ const STATUS_LABEL: Record<StatusConexao, string> = {
   desconectado: "Desconectado",
   qr_expirado: "QR expirado",
 };
+
+function resolveOwnerWhatsApp(): string | null {
+  return resolveWhatsAppOwnerFromStorage();
+}
 
 function QrReal({
   qrCode,
@@ -140,11 +148,18 @@ export default function WhatsAppConexoesManager() {
   useEffect(() => {
     let ativo = true;
 
-    fetch("/api/whatsapp/conexao")
+    fetch("/api/whatsapp/conexao", buildWhatsAppRequestHeaders())
       .then((r) => (r.ok ? r.json() : null))
       .then((json) => {
-        if (ativo && json?.conexoes) {
-          setConexoes(json.conexoes);
+        if (!ativo || !json?.conexoes) return;
+        const lista = json.conexoes as ConexaoWhatsApp[];
+        setConexoes(lista);
+
+        const owner = resolveOwnerWhatsApp() ?? lista[0]?.corretor ?? null;
+        if (owner) {
+          setCorretor(owner);
+          window.localStorage.setItem("posat:whatsapp:owner", owner);
+          window.localStorage.setItem("posat:user:name", owner);
         }
       })
       .catch((e) => {
@@ -209,19 +224,35 @@ export default function WhatsAppConexoesManager() {
       return;
     }
 
+    const jaPossuiConexao = conexoes.some(
+      (conexao) => conexao.corretor.trim().toLowerCase() === corretor.trim().toLowerCase()
+    );
+
+    if (jaPossuiConexao) {
+      setErro("Este usuário já possui um WhatsApp cadastrado. Apenas um número por usuário é permitido.");
+      return;
+    }
+
     setCriando(true);
 
     try {
-      const res = await fetch("/api/whatsapp/conexao", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          corretor: corretor.trim(),
-          numero: numero.trim(),
-        }),
-      });
+      const currentOwner = resolveOwnerWhatsApp() || corretor.trim();
+      const res = await fetch(
+        "/api/whatsapp/conexao",
+        buildWhatsAppRequestHeaders(
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              corretor: corretor.trim(),
+              numero: numero.trim(),
+            }),
+          },
+          currentOwner
+        )
+      );
 
       const json = await res.json();
 
@@ -229,7 +260,9 @@ export default function WhatsAppConexoesManager() {
         setErro(json.erro || "Falha ao criar conexão.");
       } else if (json?.conexao) {
         setConexoes((lista) => [...lista, json.conexao]);
-        setCorretor("");
+        window.localStorage.setItem("posat:whatsapp:owner", json.conexao.corretor);
+        window.localStorage.setItem("posat:user:name", json.conexao.corretor);
+        setCorretor(json.conexao.corretor);
         setNumero("");
       }
     } catch (e) {
@@ -272,8 +305,14 @@ export default function WhatsAppConexoesManager() {
       <section className="rounded-2xl border border-dashed border-slate-300 bg-slate-50/50 p-4 dark:border-zinc-600 dark:bg-zinc-800/50">
         <h3 className="mb-3 flex items-center gap-1.5 text-sm font-bold text-slate-800 dark:text-zinc-100">
           <Plus className="h-4 w-4" />
-          Nova conexão
+          {conexoes.length > 0 ? "Seu WhatsApp" : "Nova conexão"}
         </h3>
+
+        {conexoes.length > 0 && (
+          <p className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
+            Você já possui um WhatsApp registrado para este perfil. O sistema permite apenas um número por usuário.
+          </p>
+        )}
 
         <div className="flex flex-wrap items-end gap-3">
           <label className="min-w-40 flex-1">

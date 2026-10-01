@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { receberMensagemWhatsAppUseCase } from "@/core/container";
+import { receberMensagemWhatsAppUseCase, pausarFluxoPorRespostaUseCase } from "@/core/container";
 import { extrairNumeroDeJid } from "@/lib/whatsapp";
 
 // Aceita:
@@ -481,6 +481,24 @@ export async function POST(request: NextRequest) {
       });
 
     // ============================================================
+    // PAUSA AUTOMÁTICA DE FLUXO (lead respondeu)
+    // ============================================================
+    // Quando a mensagem veio DO LEAD (recebida), pausa imediatamente
+    // todas as execuções de fluxo ativas dele — evita automação
+    // "pisando" na conversa humana. Critério de sucesso: até 30s.
+    let fluxosPausados = 0;
+    if (origem === "recebida" && resultado.conversa?.cliente_id) {
+      try {
+        fluxosPausados = await pausarFluxoPorRespostaUseCase.execute(
+          resultado.conversa.cliente_id,
+          conteudo
+        );
+      } catch (e) {
+        console.error("Erro ao pausar fluxos por resposta:", e);
+      }
+    }
+
+    // ============================================================
     // RESPOSTA
     // ============================================================
 
@@ -507,6 +525,8 @@ export async function POST(request: NextRequest) {
 
         espelhando:
           resultado.conversa.espelhando,
+
+        fluxosPausados,
       },
       {
         status: 201,

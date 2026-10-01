@@ -48,7 +48,6 @@ const GRUPOS: { titulo: string; itens: NavItem[] }[] = [
   {
     titulo: "Operação",
     itens: [
-      // Mantivemos a rota Fluxos e adicionamos a tipagem 'modulo' que a outra branch introduziu
       { label: "Fluxos", href: "/fluxos", icon: GitBranch, modulo: "fluxos" as Modulo },
       { label: "Kanban", href: "/kanban", icon: KanbanSquare, modulo: "kanban" },
       { label: "Handoffs", href: "/handoffs", icon: ArrowRightLeft, modulo: "handoffs" },

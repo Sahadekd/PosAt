@@ -5,6 +5,11 @@ import {
   criarConexaoWhatsAppUseCase,
   atualizarConexaoWhatsAppUseCase,
 } from "@/core/container";
+import {
+  getWhatsAppOwnerFromHeaders,
+  getWhatsAppUserIdentityFromHeaders,
+  resolveWhatsAppOwnerFromContext,
+} from "@/lib/whatsapp-access";
 
 const criarSchema = z.object({
   corretor: z.string().min(2),
@@ -21,11 +26,21 @@ const atualizarSchema = z.object({
   ]),
 });
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const userIdentity = getWhatsAppUserIdentityFromHeaders(request.headers);
+    const owner = resolveWhatsAppOwnerFromContext(
+      getWhatsAppOwnerFromHeaders(request.headers),
+      userIdentity
+    );
     const conexoes = await listarConexoesWhatsAppUseCase.execute();
+    const conexoesVisiveis = owner
+      ? conexoes.filter((conexao) => (conexao.corretor || "").trim() === owner.trim())
+      : conexoes;
 
-    return NextResponse.json({ conexoes });
+    return NextResponse.json({
+      conexoes: conexoesVisiveis.slice(0, 1),
+    });
   } catch (error) {
     return NextResponse.json(
       {
@@ -43,10 +58,42 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     if (body && typeof body.corretor === "string") {
+      const userIdentity = getWhatsAppUserIdentityFromHeaders(request.headers);
+      const owner = resolveWhatsAppOwnerFromContext(
+        getWhatsAppOwnerFromHeaders(request.headers),
+        userIdentity
+      );
       const parsed = criarSchema.parse(body);
+      const corretorDesejado = owner || parsed.corretor;
+
+      if (owner && parsed.corretor.trim().toLowerCase() !== owner.trim().toLowerCase()) {
+        return NextResponse.json(
+          {
+            erro: "Você só pode cadastrar o WhatsApp vinculado ao seu usuário atual.",
+          },
+          { status: 403 }
+        );
+      }
+
+      const conexoesAtuais = await listarConexoesWhatsAppUseCase.execute();
+      const existente = conexoesAtuais.find(
+        (conexao) =>
+          (conexao.corretor || "").trim().toLowerCase() ===
+          corretorDesejado.trim().toLowerCase()
+      );
+
+      if (existente) {
+        return NextResponse.json(
+          {
+            erro: "Este usuário já possui um WhatsApp cadastrado. Cadastre apenas um número por usuário.",
+            conexaoExistente: existente,
+          },
+          { status: 409 }
+        );
+      }
 
       const conexao = await criarConexaoWhatsAppUseCase.execute({
-        corretor: parsed.corretor,
+        corretor: corretorDesejado,
         numero: parsed.numero,
       });
 

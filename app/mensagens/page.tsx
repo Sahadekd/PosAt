@@ -29,6 +29,10 @@ import WhatsAppConexoesManager from "@/components/WhatsAppConexoesManager";
 import WhatsAppGestorDashboard from "@/components/WhatsAppGestorDashboard";
 import { supabaseBrowser } from "@/lib/supabase-browser";
 import {
+  buildWhatsAppRequestHeaders,
+  resolveWhatsAppOwnerFromStorage,
+} from "@/lib/whatsapp-access";
+import {
   formatarHorario,
   formatarDia,
   estaSemResposta,
@@ -108,6 +112,32 @@ interface NpsUI {
   enviada_em: string;
 }
 
+function resolveOwnerWhatsApp(): string | null {
+  return resolveWhatsAppOwnerFromStorage();
+}
+
+function withOwnerHeader(init?: RequestInit, owner?: string | null): RequestInit {
+  return buildWhatsAppRequestHeaders(init, owner);
+}
+
+function mesclarMensagem(
+  conversa: ConversaUI,
+  mensagem: MensagemUI
+): ConversaUI {
+  const mensagens = conversa.mensagens.some((item) => item.id === mensagem.id)
+    ? conversa.mensagens.map((item) => item.id === mensagem.id ? mensagem : item)
+    : [...conversa.mensagens, mensagem];
+
+  return {
+    ...conversa,
+    mensagens,
+    ultima_mensagem_em:
+      mensagem.enviado_em > conversa.ultima_mensagem_em
+        ? mensagem.enviado_em
+        : conversa.ultima_mensagem_em,
+  };
+}
+
 function AbaConteudo({
   ativa,
   onClick,
@@ -150,15 +180,18 @@ export default function MensagensPage() {
   const [nps, setNps] = useState<NpsUI[]>([]);
   const [respostaNps, setRespostaNps] = useState(9);
   const [comentarioNps, setComentarioNps] = useState("");
+  const [ownerSelecionado, setOwnerSelecionado] = useState<string | null>(null);
   const threadRef = useRef<HTMLDivElement>(null);
+  const mensagemOtimistaIdRef = useRef(0);
 
   useEffect(() => {
     let ativo = true;
+    const owner = resolveOwnerWhatsApp();
 
     Promise.all([
-      fetch("/api/whatsapp/mensagens").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/whatsapp/conexao").then((r) => (r.ok ? r.json() : null)),
-      fetch("/api/whatsapp/metricas").then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/whatsapp/mensagens", withOwnerHeader(undefined, owner)).then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/whatsapp/conexao", withOwnerHeader(undefined, owner)).then((r) => (r.ok ? r.json() : null)),
+      fetch("/api/whatsapp/metricas", withOwnerHeader(undefined, owner)).then((r) => (r.ok ? r.json() : null)),
     ])
       .then(([msg, con, met]) => {
         if (!ativo) return;
@@ -166,7 +199,21 @@ export default function MensagensPage() {
         if (msg?.conversas) setConversas(msg.conversas);
         if (msg?.clientes) setClientes(msg.clientes);
         if (msg?.nps) setNps(msg.nps);
-        if (con?.conexoes) setConexoes(con.conexoes);
+        if (con?.conexoes) {
+          setConexoes(con.conexoes);
+          const primeiroOwner = con.conexoes[0]?.corretor ?? null;
+          const atual = resolveOwnerWhatsApp() ?? primeiroOwner;
+
+          if (!atual && con.conexoes.length === 0 && visao !== "conexoes") {
+            setVisao("conexoes");
+            setUltimoResultado("Cadastre seu WhatsApp para começar a responder as conversas.");
+          }
+
+          if (atual) {
+            setOwnerSelecionado(atual);
+            window.localStorage.setItem("posat:whatsapp:owner", atual);
+          }
+        }
         if (met?.metricas) setMetricas(met.metricas);
 
         const abrir = new URLSearchParams(window.location.search).get("abrir");
@@ -197,17 +244,16 @@ export default function MensagensPage() {
   }, [selecionada, conversas]);
 
   async function refresh() {
-    setCarregando(true);
-
     try {
+      const owner = resolveOwnerWhatsApp();
       const [msg, con, met] = await Promise.all([
-        fetch("/api/whatsapp/mensagens").then((r) =>
+        fetch("/api/whatsapp/mensagens", withOwnerHeader(undefined, owner)).then((r) =>
           r.ok ? r.json() : null
         ),
-        fetch("/api/whatsapp/conexao").then((r) =>
+        fetch("/api/whatsapp/conexao", withOwnerHeader(undefined, owner)).then((r) =>
           r.ok ? r.json() : null
         ),
-        fetch("/api/whatsapp/metricas").then((r) =>
+        fetch("/api/whatsapp/metricas", withOwnerHeader(undefined, owner)).then((r) =>
           r.ok ? r.json() : null
         ),
       ]);
@@ -219,16 +265,11 @@ export default function MensagensPage() {
       if (met?.metricas) setMetricas(met.metricas);
     } catch (e) {
       console.error(e);
-    } finally {
-      setCarregando(false);
     }
   }
 
-    useEffect(() => {
-  if (!supabaseBrowser) {
-    console.log("❌ Supabase Browser não configurado");
-    return;
-  }
+  useEffect(() => {
+    if (!supabaseBrowser) return;
 
   const canal = supabaseBrowser
     .channel("whatsapp-mensagens-realtime")
@@ -240,8 +281,14 @@ export default function MensagensPage() {
         table: "whatsapp_mensagens",
       },
       (payload) => {
-        console.log("🔥 NOVA MENSAGEM RECEBIDA PELO REALTIME:", payload);
-        void refresh();
+        const mensagem = payload.new as MensagemUI & { conversa_id?: string };
+        if (!mensagem?.id || !mensagem.conversa_id) return;
+
+        setConversas((atual) => atual.map((conversa) =>
+          conversa.id === mensagem.conversa_id
+            ? mesclarMensagem(conversa, mensagem)
+            : conversa
+        ));
       }
     )
     .subscribe((status) => {
@@ -253,7 +300,7 @@ export default function MensagensPage() {
       void supabaseBrowser.removeChannel(canal);
     }
   };
-}, []);
+  }, []);
 
   async function toggleEspelhamento(conversa: ConversaUI) {
     const proximo = !conversa.espelhando;
@@ -356,13 +403,36 @@ export default function MensagensPage() {
 
   async function enviarMensagem(direcao: "enviada" | "recebida") {
     if (!selecionada || !novoTexto.trim()) return;
+    const texto = novoTexto.trim();
+    const conversaAntesDoEnvio = conversas.find((c) => c.id === selecionada);
+    if (!conversaAntesDoEnvio) return;
+    if (direcao === "recebida" && !selecionadaLograda) {
+      setUltimoResultado("Selecione uma conversa com conexão ativa para simular a resposta do cliente.");
+      return;
+    }
+    mensagemOtimistaIdRef.current += 1;
+
+    const mensagemOtimista: MensagemUI = {
+      id: `optimistic-${mensagemOtimistaIdRef.current}`,
+      origem: direcao,
+      tipo: "texto",
+      conteudo: texto,
+      lida: direcao === "enviada",
+      enviado_em: new Date().toISOString(),
+    };
+    setConversas((atual) => atual.map((conversa) =>
+      conversa.id === selecionada
+        ? mesclarMensagem(conversa, mensagemOtimista)
+        : conversa
+    ));
+    setNovoTexto("");
     setEnviando(true);
     try {
       if (direcao === "enviada") {
         const res = await fetch(`/api/whatsapp/mensagens/${selecionada}/responder`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ conteudo: novoTexto.trim() }),
+          body: JSON.stringify({ conteudo: texto }),
         });
         const json = await res.json();
         setUltimoResultado(
@@ -370,24 +440,27 @@ export default function MensagensPage() {
             ? `Enviada no WhatsApp${json.enviadoViaEvolution ? " via Evolution API" : " (simulação)"} · ${json.registradoNoCrm ? "registrada no CRM" : "sem registro no CRM"}`
             : `Erro: ${json.erro || "desconhecido"}`
         );
-        setNovoTexto("");
-        await refresh();
+        setConversas((atual) => atual.map((conversa) => {
+          if (conversa.id !== selecionada) return conversa;
+          const semOtimista = conversa.mensagens.filter((item) => item.id !== mensagemOtimista.id);
+          return json.mensagem
+            ? mesclarMensagem({ ...conversa, mensagens: semOtimista }, json.mensagem)
+            : { ...conversa, mensagens: semOtimista };
+        }));
         return;
       }
 
-      if (!selecionadaLograda) {
-        setUltimoResultado("Selecione uma conversa com conexão ativa para simular a resposta do cliente.");
-        return;
-      }
+      const sessao = selecionadaLograda;
+      if (!sessao) return;
       const res = await fetch("/api/whatsapp/webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          sessaoId: selecionadaLograda.sessaoId,
-          numero: selecionadaLograda.numero,
+          sessaoId: sessao.sessaoId,
+          numero: sessao.numero,
           direction: "recebida",
-          texto: novoTexto.trim(),
-          nomeContato: selecionadaLograda.nomeCliente || undefined,
+          texto,
+          nomeContato: sessao.nomeCliente || undefined,
         }),
       });
       const json = await res.json();
@@ -396,10 +469,16 @@ export default function MensagensPage() {
           ? `Resposta do cliente espelhada${json.matchCliente ? " · match com cliente" : " · sem match no CRM"}${json.registradoNoCrm ? " · registrada na ficha" : ""}`
           : `Erro: ${json.erro || "desconhecido"}`
       );
-      setNovoTexto("");
-      await refresh();
+      if (!res.ok) {
+        setConversas((atual) => atual.map((conversa) => conversa.id === selecionada
+          ? { ...conversa, mensagens: conversa.mensagens.filter((item) => item.id !== mensagemOtimista.id) }
+          : conversa));
+      }
     } catch (e) {
       console.error(e);
+      setConversas((atual) => atual.map((conversa) => conversa.id === selecionada
+        ? { ...conversa, mensagens: conversa.mensagens.filter((item) => item.id !== mensagemOtimista.id) }
+        : conversa));
       setUltimoResultado("Falha de rede ao processar webhook.");
     } finally {
       setEnviando(false);
@@ -445,7 +524,11 @@ export default function MensagensPage() {
       }
     : null;
 
-  const filtradas = conversas.filter((c) => {
+  const conversasVisiveis = ownerSelecionado
+    ? conversas.filter((c) => !c.corretor || c.corretor === ownerSelecionado)
+    : conversas;
+
+  const filtradas = conversasVisiveis.filter((c) => {
     if (!busca.trim()) return true;
     const termo = busca.toLowerCase();
     return (
@@ -487,13 +570,37 @@ export default function MensagensPage() {
               : " carregando…"}
           </p>
         </div>
-        <button
-          onClick={refresh}
-          className="flex h-10 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--white)] px-3.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
-        >
-          <RefreshCw className="h-4 w-4" />
-          <span className="hidden sm:inline">Atualizar</span>
-        </button>
+        <div className="flex items-center gap-2">
+          {conexoes.length > 0 && (
+            <select
+              value={ownerSelecionado ?? ""}
+              onChange={(event) => {
+                const valor = event.target.value || null;
+                setOwnerSelecionado(valor);
+                if (valor) {
+                  window.localStorage.setItem("posat:whatsapp:owner", valor);
+                } else {
+                  window.localStorage.removeItem("posat:whatsapp:owner");
+                }
+              }}
+              className="rounded-xl border border-[var(--border)] bg-[var(--white)] px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
+            >
+              <option value="">Todos os números</option>
+              {conexoes.map((cx) => (
+                <option key={cx.id} value={cx.corretor}>
+                  {cx.corretor}
+                </option>
+              ))}
+            </select>
+          )}
+          <button
+            onClick={refresh}
+            className="flex h-10 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--white)] px-3.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span className="hidden sm:inline">Atualizar</span>
+          </button>
+        </div>
       </div>
 
       {/* ── Abas de visualização ── */}
@@ -517,6 +624,23 @@ export default function MensagensPage() {
           label="Painel do gestor"
         />
       </div>
+
+      {!carregando && visao !== "gestor" && visao !== "conexoes" && conexoes.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-[var(--border-strong)] bg-[var(--white)] p-5">
+          <p className="text-sm font-semibold text-[var(--text-primary)]">
+            Seu WhatsApp ainda não foi cadastrado.
+          </p>
+          <p className="mt-1 text-sm text-[var(--text-secondary)]">
+            Cadastre apenas um número para este usuário e comece a responder as conversas.
+          </p>
+          <button
+            onClick={() => setVisao("conexoes")}
+            className="mt-3 rounded-xl bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent-hover)]"
+          >
+            Cadastrar meu WhatsApp
+          </button>
+        </div>
+      )}
 
       {visao === "conexoes" ? (
         <WhatsAppConexoesManager />
