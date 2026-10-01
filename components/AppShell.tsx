@@ -19,6 +19,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   ChevronRight,
+  GitBranch,
   ChevronDown,
   ShieldCheck,
   UserCircle2,
@@ -47,6 +48,8 @@ const GRUPOS: { titulo: string; itens: NavItem[] }[] = [
   {
     titulo: "Operação",
     itens: [
+      // Mantivemos a rota Fluxos e adicionamos a tipagem 'modulo' que a outra branch introduziu
+      { label: "Fluxos", href: "/fluxos", icon: GitBranch, modulo: "fluxos" as Modulo },
       { label: "Kanban", href: "/kanban", icon: KanbanSquare, modulo: "kanban" },
       { label: "Handoffs", href: "/handoffs", icon: ArrowRightLeft, modulo: "handoffs" },
     ],
@@ -79,6 +82,8 @@ const ROTA_TITULO: { match: RegExp; titulo: string; pai?: string }[] = [
   { match: /^\/clientes$/, titulo: "Clientes" },
   { match: /^\/oportunidades/, titulo: "Oportunidades" },
   { match: /^\/tarefas$/, titulo: "Tarefas" },
+  { match: /^\/fluxos\/[^/]+$/, titulo: "Editor de fluxo", pai: "Fluxos" },
+  { match: /^\/fluxos$/, titulo: "Fluxo de Leads" },
   { match: /^\/kanban$/, titulo: "Kanban" },
   { match: /^\/handoffs$/, titulo: "Handoffs" },
   { match: /^\/mensagens$/, titulo: "Conversas" },
@@ -160,8 +165,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   function podeVer(item: NavItem): boolean {
     if (!usuario) return false;
-    // Rota explícita concedida (matriz de acesso editável), com fallback
-    // para a matriz estática por módulo quando o backend não retornar rotas.
     if (usuario.rotas && usuario.rotas.length > 0) {
       return usuario.rotas.includes(item.href);
     }
@@ -187,7 +190,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           colapsada ? "-translate-x-full" : "translate-x-0"
         }`}
       >
-        {/* Logo */}
         <div className={`flex h-16 items-center gap-2.5 px-4 ${colapsada ? "justify-center px-0" : ""}`}>
           <Link href="/" className="flex items-center gap-2.5" data-tooltip={colapsada ? "Quadra — Pós-Atendimento" : undefined}>
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-600 text-white shadow-lg shadow-blue-900/40">
@@ -206,7 +208,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        {/* Segurador da sidebar: aba presa à borda direita (fora da costura), desliza junto e permanece 100% visível na borda da tela quando recolhida */}
         <button
           type="button"
           onClick={() => setColapsada((v) => !v)}
@@ -222,7 +223,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </button>
 
-        {/* Nav */}
         <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 scroll-thin">
           {gruposVisiveis.map((grupo) => (
             <div key={grupo.titulo}>
@@ -356,7 +356,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* ─── Área de conteúdo ─── */}
       <div className="flex min-h-screen flex-col">
-        {/* Topbar */}
         <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--border)] bg-[var(--side)]/90 px-4 backdrop-blur-md sm:px-6 lg:px-8">
           <button
             onClick={() => setMenuAberto(true)}
@@ -378,7 +377,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             )}
           </div>
 
-          {/* Usuário: chip abre menu do perfil */}
           <div className="relative ml-auto flex items-center">
             {usuario ? (
               <button
@@ -417,7 +415,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuPerfil(false)} />
                 <div className="absolute right-0 top-full z-50 mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--side)] shadow-xl">
-                  {/* Identidade */}
                   <div className="flex items-center gap-3 p-3">
                     <span className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-blue-600 text-xs font-bold text-white">
                       {iniciais(usuario.nome)}
@@ -436,7 +433,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </span>
                   </div>
 
-                  {/* Ações */}
                   <div className="grid gap-2 border-t border-[var(--border)] p-3">
                     <button
                       onClick={() => {
@@ -465,7 +461,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Main */}
         <main className="mx-auto w-full max-w-screen-2xl flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           {children}
         </main>
