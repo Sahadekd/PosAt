@@ -48,7 +48,7 @@ const GRUPOS: { titulo: string; itens: NavItem[] }[] = [
   {
     titulo: "Operação",
     itens: [
-      { label: "Fluxos", href: "/fluxos", icon: GitBranch, modulo: "fluxos" },
+    { label: "Fluxos", href: "/fluxos", icon: GitBranch, modulo: "fluxos" },
       { label: "Kanban", href: "/kanban", icon: KanbanSquare, modulo: "kanban" },
       { label: "Handoffs", href: "/handoffs", icon: ArrowRightLeft, modulo: "handoffs" },
     ],
