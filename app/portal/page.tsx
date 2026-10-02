@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Building2,
@@ -93,7 +94,20 @@ function badgeEtapa(status: string) {
 }
 
 export default function PortalPage() {
+  const router = useRouter();
   const [usuario, setUsuario] = useState<UsuarioPortal | null>(null);
+  const [saindo, setSaindo] = useState(false);
+
+  async function sair() {
+    if (saindo) return;
+    setSaindo(true);
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      router.replace("/login");
+      router.refresh();
+    }
+  }
 
   useEffect(() => {
     let ativo = true;
@@ -179,13 +193,15 @@ export default function PortalPage() {
             </span>
           </span>
 
-          <a
-            href="/api/auth/logout"
-            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
+          <button
+            type="button"
+            onClick={sair}
+            disabled={saindo}
+            className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] px-3 py-1.5 text-xs font-medium text-[var(--text-secondary)] transition hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] disabled:cursor-wait disabled:opacity-60"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Sair
-          </a>
+            {saindo ? "Saindo…" : "Sair"}
+          </button>
         </div>
       </header>
 

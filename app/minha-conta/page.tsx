@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import {
   KeyRound,
   Loader2,
   LogOut,
   Mail,
+  Moon,
   ShieldCheck,
   UserCircle2,
+  Sun,
 } from "lucide-react";
 import { PAPEL_LABEL, pode, type Papel } from "@/core/domain/papeis";
 
@@ -33,6 +36,7 @@ function iniciais(nome: string): string {
 
 export default function MinhaContaPage() {
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
   const [usuario, setUsuario] = useState<UsuarioConta | null>(null);
   const [carregado, setCarregado] = useState(false);
 
@@ -118,6 +122,17 @@ export default function MinhaContaPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-[var(--text-primary)]">Meu perfil</h1>
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            aria-label={resolvedTheme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+            aria-pressed={resolvedTheme === "dark"}
+            title={resolvedTheme === "dark" ? "Ativar modo claro" : "Ativar modo escuro"}
+            className="flex items-center gap-2 rounded-lg border border-[var(--border)] bg-[var(--white)] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border-strong)] hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
+          >
+            {resolvedTheme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            {resolvedTheme === "dark" ? "Claro" : "Escuro"}
+          </button>
           {pode(usuario.papel, "acessos", "ver") && (
             <button
               onClick={() => router.push("/acessos")}
@@ -138,7 +153,7 @@ export default function MinhaContaPage() {
       </div>
 
       {/* Identidade */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--inset)] p-5">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--white)] p-5 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 text-lg font-bold text-white">
             {iniciais(usuario.nome)}
@@ -183,7 +198,7 @@ export default function MinhaContaPage() {
       </div>
 
       {/* Alterar senha */}
-      <div className="rounded-2xl border border-[var(--border)] bg-[var(--inset)] p-5">
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--white)] p-5 shadow-sm">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-[var(--text-primary)]">
           <KeyRound className="h-4 w-4 text-[var(--accent)]" />
           Alterar senha

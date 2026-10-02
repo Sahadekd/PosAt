@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ChevronLeft, RefreshCw, Plus, Store, UserRound, PhoneCall, Mail, Building2, Target, ChevronRight } from "lucide-react";
 import { VendedorItem, ImovelItem, OportunidadeItem } from "@/lib/segmentacao/tipos";
 import NovoVendedorModal from "@/components/vendedor/NovoVendedorModal";
+import { VendedorDetailPanel } from "@/components/VendedorDetailPanel";
 import { formataMoeda } from "@/components/oportunidade/oportunidade-ui";
 
 function iniciais(nome: string) {
@@ -15,12 +16,23 @@ function iniciais(nome: string) {
     .join("");
 }
 
-export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (detalhe: { vendedor: VendedorItem; imoveis: ImovelItem[]; oportunidades: OportunidadeItem[] }) => void; onVoltar?: () => void }) {
+type DetalheVendedor = { vendedor: VendedorItem; imoveis: ImovelItem[]; oportunidades: OportunidadeItem[] };
+
+export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail?: (detalhe: DetalheVendedor) => void; onVoltar?: () => void }) {
   const [vendedores, setVendedores] = useState<VendedorItem[]>([]);
   const [imoveis, setImoveis] = useState<ImovelItem[]>([]);
   const [oportunidades, setOportunidades] = useState<OportunidadeItem[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [modalNovo, setModalNovo] = useState(false);
+  const [detalheLocal, setDetalheLocal] = useState<DetalheVendedor | null>(null);
+
+  function abrirDetalhe(detalhe: DetalheVendedor) {
+    if (onOpenDetail) {
+      onOpenDetail(detalhe);
+    } else {
+      setDetalheLocal(detalhe);
+    }
+  }
 
   function carregar() {
     let ativo = true;
@@ -66,7 +78,7 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
   if (carregando) {
     return (
       <div className="h-full space-y-5">
-        <div className="flex items-center gap-2">
+        {onVoltar && <div className="flex items-center gap-2">
           <button
             onClick={onVoltar}
             className="flex h-10 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--white)] px-3.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
@@ -74,7 +86,7 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
             <ChevronLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Oportunidades</span>
           </button>
-        </div>
+        </div>}
         <HeaderSection ativos={ativos} total={vendedores.length} />
         <div className="rounded-xl border border-[var(--border)] bg-[var(--white)] py-16 text-center text-sm text-[var(--text-muted)]">
           <RefreshCw className="mx-auto mb-3 h-5 w-5 animate-spin text-[var(--accent)]" />
@@ -86,7 +98,7 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
 
   return (
     <div className="h-full space-y-5">
-      <div className="flex items-center gap-2">
+      {onVoltar && <div className="flex items-center gap-2">
         <button
           onClick={onVoltar}
           className="flex h-10 items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--white)] px-3.5 text-sm font-medium text-[var(--text-secondary)] transition hover:bg-[var(--inset)] hover:text-[var(--text-primary)]"
@@ -94,7 +106,7 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
           <ChevronLeft className="h-4 w-4" />
           <span className="hidden sm:inline">Oportunidades</span>
         </button>
-      </div>
+      </div>}
 
       <HeaderSection ativos={ativos} total={vendedores.length} />
 
@@ -140,85 +152,77 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
             return (
               <div
                 key={v.id}
-                onClick={() => onOpenDetail({
+                onClick={() => abrirDetalhe({
                   vendedor: v,
                   imoveis: imoveisDoVendedor(v),
                   oportunidades: oportunidadesDoVendedor(v)
                 })}
-                className="group flex cursor-pointer flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--white)] p-4 transition-all hover:border-[var(--border-strong)] hover:shadow-lg hover:shadow-black/10"
+                className="group flex cursor-pointer flex-col gap-4 rounded-xl border border-[var(--border)] bg-[var(--white)] p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:shadow-md"
               >
-                {/* Vendedor */}
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--inset)] text-sm font-black text-[var(--accent)]">
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--accent)] to-sky-400 text-lg font-bold text-white transition-transform duration-200 group-hover:scale-105">
                       {iniciais(v.nome)}
                     </span>
                     <div className="min-w-0">
-                      <h3 className="truncate text-sm font-black tracking-wide text-[var(--text-primary)]">
+                      <h3 className="truncate text-base font-semibold text-[var(--text-primary)]">
                         {v.nome}
                       </h3>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        {v.creci ? `CREci ${v.creci}` : "Sem CREci"}
+                      <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+                        {v.creci ? `CRECI ${v.creci.replace(/^CRECI\s+/i, "")}` : "CRECI não informado"}
                       </p>
                     </div>
                   </div>
                   <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-wider ${
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium ${
                       v.status === "ativo"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-[var(--inset)] text-[var(--text-muted)]"
+                        ? "border-[var(--success-border)] bg-[var(--success-light)] text-[var(--success)]"
+                        : "border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)]"
                     }`}
                   >
+                    <span className={`h-1.5 w-1.5 rounded-full ${v.status === "ativo" ? "bg-[var(--success)]" : "bg-[var(--text-muted)]"}`} />
                     {v.status === "ativo" ? "Ativo" : "Inativo"}
                   </span>
                 </div>
 
-                {/* Contato */}
-                {(v.telefone || v.email) && (
-                  <div className="space-y-1 text-xs text-[var(--text-muted)]">
-                    {v.telefone && (
-                      <div className="flex items-center gap-2">
-                        <PhoneCall className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-                        {v.telefone}
-                      </div>
-                    )}
-                    {v.email && (
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" />
-                        <span className="truncate">{v.email}</span>
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="space-y-2 border-t border-[var(--border)] pt-3 text-sm text-[var(--text-secondary)]">
+                  {v.email && (
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Mail className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+                      <span className="truncate">{v.email}</span>
+                    </div>
+                  )}
+                  {v.telefone && (
+                    <div className="flex items-center gap-2">
+                      <PhoneCall className="h-4 w-4 shrink-0 text-[var(--text-muted)]" />
+                      <span>{v.telefone}</span>
+                    </div>
+                  )}
+                  {!v.email && !v.telefone && (
+                    <p className="text-xs text-[var(--text-muted)]">Sem dados de contato</p>
+                  )}
+                </div>
 
-                <div className="my-1 border-t border-[var(--border)]" />
-
-                {/* Métricas */}
-                <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--white)]">
-                  <div className="flex items-center gap-2 px-3 py-2.5">
-                    <Building2 className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-                    <span className="text-xs text-[var(--text-muted)]">
-                      <strong className="block text-sm font-extrabold text-[var(--text-primary)]">{totals.imoveis}</strong>
-                      imóveis
-                    </span>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-[var(--accent-light)] p-3 text-center">
+                    <Building2 className="mx-auto mb-1 h-4 w-4 text-[var(--accent)]" />
+                    <strong className="block text-sm font-semibold text-[var(--text-primary)]">{totals.imoveis}</strong>
+                    <span className="text-xs text-[var(--text-secondary)]">Imóveis</span>
                   </div>
-                  <div className="flex items-center gap-2 border-l border-[var(--border)] px-3 py-2.5">
-                    <Target className="h-4 w-4 shrink-0 text-[var(--accent)]" />
-                    <span className="text-xs text-[var(--text-muted)]">
-                      <strong className="block text-sm font-extrabold text-[var(--text-primary)]">{totals.oportunidades}</strong>
-                      oportunidades
-                    </span>
+                  <div className="rounded-lg bg-[var(--success-light)] p-3 text-center">
+                    <Target className="mx-auto mb-1 h-4 w-4 text-[var(--success)]" />
+                    <strong className="block text-sm font-semibold text-[var(--text-primary)]">{totals.oportunidades}</strong>
+                    <span className="text-xs text-[var(--text-secondary)]">Oportunidades</span>
                   </div>
                 </div>
 
-                {/* Rodapé */}
-                <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center justify-between gap-2 border-t border-[var(--border)] pt-3">
                   {valorOportunidades > 0 ? (
-                    <span className="truncate text-xs font-extrabold text-emerald-600">
-                      {formataMoeda(valorOportunidades)} em jogo
+                    <span className="truncate text-xs font-semibold text-[var(--success)]">
+                      {formataMoeda(valorOportunidades)} em oportunidades
                     </span>
                   ) : <span />}
-                  <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-bold text-[var(--text-muted)] transition group-hover:text-[var(--text-secondary)]">
+                  <span className="flex shrink-0 items-center gap-0.5 text-xs font-medium text-[var(--accent)] transition group-hover:underline">
                     Ver detalhes
                     <ChevronRight className="h-3 w-3" />
                   </span>
@@ -237,6 +241,15 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
           carregar();
         }}
       />
+      {detalheLocal && (
+        <VendedorDetailPanel
+          key={detalheLocal.vendedor.id}
+          vendedor={detalheLocal.vendedor}
+          imoveis={detalheLocal.imoveis}
+          oportunidades={detalheLocal.oportunidades}
+          aoFechar={() => setDetalheLocal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -244,7 +257,7 @@ export function VendedoresView({ onOpenDetail, onVoltar }: { onOpenDetail: (deta
 function HeaderSection({ ativos, total }: { ativos: number; total: number }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-      <div className="card flex items-center gap-3 p-4">
+      <div className="card flex items-center gap-3 rounded-xl p-4 shadow-sm">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--success-light)] text-[var(--success)]">
           <UserRound className="h-5 w-5" />
         </span>
@@ -253,7 +266,7 @@ function HeaderSection({ ativos, total }: { ativos: number; total: number }) {
           <p className="text-xs text-[var(--text-secondary)]">Vendedores ativos</p>
         </div>
       </div>
-      <div className="card flex items-center gap-3 p-4">
+      <div className="card flex items-center gap-3 rounded-xl p-4 shadow-sm">
         <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--accent-light)] text-[var(--accent)]">
           <Store className="h-5 w-5" />
         </span>

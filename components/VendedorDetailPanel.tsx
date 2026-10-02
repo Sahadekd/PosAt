@@ -6,8 +6,8 @@ import { VendedorItem, ImovelItem, OportunidadeItem } from "@/lib/segmentacao/ti
 import { STATUS_LABEL, STAGE, formataMoeda } from "@/components/oportunidade/oportunidade-ui";
 
 const IMOVEL_STATUS: Record<string, { label: string; text: string; bg: string }> = {
-  disponivel: { label: "Disponível", text: "text-emerald-700", bg: "bg-emerald-50" },
-  reservado: { label: "Reservado", text: "text-amber-700", bg: "bg-amber-50" },
+  disponivel: { label: "Disponível", text: "text-emerald-700 dark:text-emerald-300", bg: "bg-emerald-50 dark:bg-emerald-950/40" },
+  reservado: { label: "Reservado", text: "text-amber-700 dark:text-amber-300", bg: "bg-amber-50 dark:bg-amber-950/40" },
   vendido: { label: "Vendido", text: "text-[var(--text-secondary)]", bg: "bg-[var(--inset)]" },
   locado: { label: "Locado", text: "text-[var(--accent)]", bg: "bg-[var(--accent-light)]" },
 };
@@ -39,12 +39,12 @@ export function VendedorDetailPanel({
   return (
     <div className="fixed inset-0 z-50">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={aoFechar} />
-      <aside className="absolute right-0 top-0 flex h-screen w-full max-w-lg flex-col border-l border-[var(--border)] bg-[var(--white)] shadow-xl">
+      <aside className="absolute right-0 top-0 flex h-screen w-full max-w-lg flex-col border-l border-[var(--border)] bg-[var(--white)] shadow-xl dark:bg-gray-800">
         {/* Header */}
         <div className="flex-shrink-0 border-b border-[var(--border)] px-6 py-5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-3">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[var(--inset)] text-base font-black text-[var(--accent)]">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[var(--accent)] to-sky-400 text-base font-bold text-white">
                 {iniciais(v.nome)}
               </span>
               <div className="min-w-0">
@@ -53,14 +53,14 @@ export function VendedorDetailPanel({
                   <span
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
                       v.status === "ativo"
-                        ? "bg-emerald-50 text-emerald-700"
+                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                         : "bg-[var(--inset)] text-[var(--text-muted)]"
                     }`}
                   >
-                    <span className={`h-1.5 w-1.5 rounded-full ${v.status === "ativo" ? "bg-emerald-400" : "bg-slate-500"}`} />
+                    <span className={`h-1.5 w-1.5 rounded-full ${v.status === "ativo" ? "bg-emerald-500 dark:bg-emerald-300" : "bg-slate-500"}`} />
                     {v.status === "ativo" ? "Ativo" : "Inativo"}
                   </span>
-                  {v.creci && <span>CREci {v.creci}</span>}
+                  {v.creci && <span>CRECI {v.creci.replace(/^CRECI\s+/i, "")}</span>}
                 </div>
               </div>
             </div>
@@ -116,9 +116,9 @@ export function VendedorDetailPanel({
                         ? `${formataMoeda(i.valor_locacao)}/mês`
                         : null;
                   return (
-                    <li key={i.id} className="rounded-xl border border-[var(--border)] bg-[var(--white)] p-3">
+                    <li key={i.id} className="rounded-xl border border-[var(--border)] bg-[var(--white)] p-3 dark:bg-gray-800">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="min-w-0 truncate text-sm font-black tracking-wide text-white">
+                        <p className="min-w-0 truncate text-sm font-black tracking-wide text-[var(--text-primary)]">
                           {i.codigo_imovel}
                           <span className="ml-2 font-normal text-[var(--text-muted)]">{i.empreendimento}</span>
                         </p>
@@ -130,7 +130,7 @@ export function VendedorDetailPanel({
                         {[i.tipologia, [i.bairro, i.cidade].filter(Boolean).join(", "), i.regiao].filter(Boolean).join(" · ")}
                       </p>
                       {valor && (
-                        <p className="mt-1 text-xs font-extrabold text-emerald-600">{valor}</p>
+                        <p className="mt-1 text-xs font-extrabold text-emerald-600 dark:text-emerald-300">{valor}</p>
                       )}
                     </li>
                   );
@@ -160,7 +160,7 @@ export function VendedorDetailPanel({
                           aoFechar();
                           router.push(`/oportunidades?oportunidade=${o.id}`);
                         }}
-                        className="flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--white)] p-3 text-left transition hover:border-[var(--border-strong)]"
+                        className="flex w-full items-center justify-between gap-2 rounded-xl border border-[var(--border)] bg-[var(--white)] p-3 text-left transition hover:border-[var(--border-strong)] hover:bg-[var(--surface)] dark:bg-gray-800 dark:hover:bg-gray-700"
                       >
                         <span className="flex min-w-0 items-center gap-2">
                           <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${stage.dot}`} />

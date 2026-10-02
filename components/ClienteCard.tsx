@@ -156,7 +156,7 @@ export default function ClienteCard({ cliente, onAtualizado }: ClienteCardProps)
   return (
     <>
       <article
-        className="card card-hover group relative flex flex-col overflow-hidden p-5"
+        className="card card-hover group relative flex flex-col overflow-hidden p-5 shadow-sm"
         style={{
           borderColor: isDistrato ? "var(--danger-border)" : undefined,
         }}
@@ -197,11 +197,9 @@ export default function ClienteCard({ cliente, onAtualizado }: ClienteCardProps)
 
           {/* Estado único com cor semântica */}
           <span
-            className="flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold"
+            className={`flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--border)] px-2.5 py-1 text-[11px] font-semibold ${status.bg} ${status.text}`}
             style={{
-              background: "var(--inset)",
-              color: STATUS_COR[cliente.status] || "var(--text-secondary)",
-              border: "1px solid var(--border)",
+              borderColor: STATUS_COR[cliente.status] || "var(--border)",
             }}
           >
             <span className="h-1.5 w-1.5 rounded-full" style={{ background: STATUS_COR[cliente.status] || "var(--text-muted)" }} />
