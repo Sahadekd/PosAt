@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, ArrowRight, AlertTriangle, GripVertical } from "lucide-react";
+import { COLUNAS_CLIENTES, type ColunaCliente } from "@/components/fluxo/etapasClientes";
 
 interface ClienteKanban {
   id: string;
@@ -14,27 +15,6 @@ interface ClienteKanban {
   alerta_distrato_ativo?: boolean;
   termometro_cx?: string;
 }
-
-interface Coluna {
-  id: string;
-  titulo: string;
-  statusList: string[];
-  accent: string;
-  badge: string;
-}
-
-const COLUNAS: Coluna[] = [
-  { id: "novo_lead", titulo: "Novo Lead", statusList: ["novo_lead"], accent: "#64748b", badge: "bg-[var(--inset)] text-[var(--text-secondary)]" },
-  { id: "qualificacao", titulo: "Qualificação", statusList: ["em_qualificacao"], accent: "#0284c7", badge: "bg-[var(--accent-light)] text-[var(--accent)]" },
-  { id: "negociacao", titulo: "Negociação", statusList: ["em_negociacao"], accent: "#7c3aed", badge: "bg-purple-50 text-purple-700" },
-  { id: "convertido", titulo: "Convertido", statusList: ["convertido"], accent: "#0891b2", badge: "bg-cyan-50 text-cyan-700" },
-  { id: "handoff", titulo: "Handoff", statusList: ["handoff_pendente"], accent: "#d97706", badge: "bg-amber-50 text-amber-700" },
-  { id: "onboarding", titulo: "Onboarding", statusList: ["onboarding"], accent: "#2563eb", badge: "bg-blue-50 text-blue-700" },
-  { id: "pos_venda", titulo: "Pós-venda", statusList: ["pos_venda"], accent: "#059669", badge: "bg-emerald-50 text-emerald-700" },
-  { id: "cliente_ativo", titulo: "Cliente Ativo", statusList: ["cliente_ativo"], accent: "#14b8a6", badge: "bg-teal-50 text-teal-700" },
-  { id: "reativacao", titulo: "Reativação / Inativo", statusList: ["reativacao", "cliente_inativo", "sem_resposta"], accent: "#e11d48", badge: "bg-rose-50 text-rose-700" },
-  { id: "encerrado", titulo: "Encerrado", statusList: ["encerrado"], accent: "#64748b", badge: "bg-[var(--inset)] text-[var(--text-secondary)]" },
-];
 
 export default function KanbanPosVenda() {
   const [clientes, setClientes] = useState<ClienteKanban[]>([]);
@@ -105,7 +85,7 @@ export default function KanbanPosVenda() {
     }
   }
 
-  function handleDrop(coluna: Coluna, e: React.DragEvent) {
+  function handleDrop(coluna: ColunaCliente, e: React.DragEvent) {
     e.preventDefault();
     dragCounter.current = 0;
     setOverColuna(null);
@@ -145,7 +125,7 @@ export default function KanbanPosVenda() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-          {COLUNAS.map((col) => {
+          {COLUNAS_CLIENTES.map((col) => {
             const items = clientes.filter((c) => col.statusList.includes(c.status));
             const isOver = overColuna === col.id;
             return (
