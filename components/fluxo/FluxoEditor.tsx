@@ -18,7 +18,6 @@ import {
   RotateCcw,
   SkipForward,
   Ban,
-  ExternalLink,
   UserPlus,
   AlignHorizontalDistributeCenter,
 } from "lucide-react";
@@ -33,8 +32,6 @@ import type {
   EstadoNoExecucao,
 } from "@/core/domain/entities/fluxo";
 
-type Aba = "execucoes" | "config";
-
 export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   const [fluxo, setFluxo] = useState<Fluxo | null>(null);
   const [carregando, setCarregando] = useState(true);
@@ -46,7 +43,6 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
   const [execucoes, setExecucoes] = useState<FluxoExecucao[]>([]);
   const [execucaoSel, setExecucaoSel] = useState<string | null>(null);
   const [resumo, setResumo] = useState<ResumoExecucaoFluxo | null>(null);
-  const [aba, setAba] = useState<Aba>("execucoes");
   const [toast, setToast] = useState<string | null>(null);
   const [mostrarFormLead, setMostrarFormLead] = useState(false);
   const [formLead, setFormLead] = useState({ nome: "", telefone: "", email: "" });
@@ -431,32 +427,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
 
         {/* Painel lateral */}
         <aside className="card flex max-h-[560px] flex-col overflow-hidden">
-          {/* Abas */}
-          <div className="flex border-b border-[var(--border)]">
-            <button
-              onClick={() => setAba("execucoes")}
-              className={`flex-1 px-4 py-2.5 text-xs font-bold uppercase tracking-wide ${
-                aba === "execucoes"
-                  ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-              }`}
-            >
-              Execuções ({execucoes.length})
-            </button>
-            <button
-              onClick={() => setAba("config")}
-              className={`flex-1 px-4 py-2.5 text-xs font-bold uppercase tracking-wide ${
-                aba === "config"
-                  ? "border-b-2 border-[var(--accent)] text-[var(--accent)]"
-                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
-              }`}
-            >
-              Configuração
-            </button>
-          </div>
-
-          {aba === "execucoes" ? (
-            <div className="flex-1 overflow-y-auto scroll-thin">
+          <div className="flex-1 overflow-y-auto scroll-thin">
               {/* Adicionar lead de teste */}
               <div className="border-b border-[var(--border)] p-3">
                 {!mostrarFormLead ? (
@@ -518,7 +489,7 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                       </button>
                     </div>
                     <p className="text-[10px] leading-snug text-[var(--text-muted)]">
-                      Use um telefone real (ex.: o seu) para receber as mensagens do fluxo pelo WhatsApp e validar o funcionamento. Crie quantos leads precisar.
+                      O telefone é usado para preencher os dados do lead no teste. Crie quantos leads precisar.
                     </p>
                   </div>
                 )}
@@ -736,20 +707,9 @@ export default function FluxoEditor({ fluxoId }: { fluxoId: string }) {
                     </div>
                   )}
 
-                  {/* Link para conversa */}
-                  <a
-                    href={`/mensagens?cliente=${resumo.execucao.cliente_id}`}
-                    className="flex items-center justify-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--inset)] py-2 text-xs font-semibold text-[var(--text-secondary)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)]"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                    Abrir conversa no WhatsApp
-                  </a>
                 </div>
               )}
             </div>
-          ) : (
-            <ConfigAba fluxo={fluxo} onSalvar={(dados) => setFluxo({ ...fluxo, ...dados })} />
-          )}
         </aside>
       </div>
 
@@ -792,124 +752,6 @@ function AcaoBotao({
       <Icon className="h-3.5 w-3.5" />
       {label}
     </button>
-  );
-}
-
-function ConfigAba({
-  fluxo,
-  onSalvar,
-}: {
-  fluxo: Fluxo;
-  onSalvar: (dados: Partial<Fluxo>) => void;
-}) {
-  const [form, setForm] = useState({
-    pausar_quando_responder: fluxo.pausar_quando_responder,
-    janela_envio_inicio: fluxo.janela_envio_inicio.slice(0, 5),
-    janela_envio_fim: fluxo.janela_envio_fim.slice(0, 5),
-    limite_mensagens_por_dia: fluxo.limite_mensagens_por_dia,
-  });
-  const [salvando, setSalvando] = useState(false);
-  const [ok, setOk] = useState(false);
-
-  async function salvar() {
-    setSalvando(true);
-    try {
-      const r = await fetch(`/api/fluxos/${fluxo.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      if (r.ok) {
-        const data = await r.json();
-        onSalvar(data.fluxo);
-        setOk(true);
-        setTimeout(() => setOk(false), 2000);
-      }
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  const labelClasse = "mb-1 block text-[11px] font-bold uppercase tracking-wide text-[var(--text-secondary)]";
-  const campoClasse = "w-full rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-[13px] text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-none";
-
-  return (
-    <div className="flex-1 space-y-4 overflow-y-auto p-4 scroll-thin">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-wide text-[var(--text-secondary)]">
-          Regras de execução
-        </p>
-        <p className="mt-0.5 text-[11px] text-[var(--text-muted)]">
-          Configurações globais de disparo deste fluxo.
-        </p>
-      </div>
-
-      <label className="flex cursor-pointer items-start gap-2.5 rounded-lg bg-[var(--inset)] p-3">
-        <input
-          type="checkbox"
-          checked={form.pausar_quando_responder}
-          onChange={(e) => setForm({ ...form, pausar_quando_responder: e.target.checked })}
-          className="mt-0.5 h-4 w-4 rounded accent-[var(--accent)]"
-        />
-        <span>
-          <span className="block text-[13px] font-semibold text-[var(--text-primary)]">
-            Pausar quando o lead responder
-          </span>
-          <span className="block text-[11px] leading-snug text-[var(--text-secondary)]">
-            Nenhuma automação &quot;pisando&quot; na conversa humana. A pausa ocorre em até 30s.
-          </span>
-        </span>
-      </label>
-
-      <div>
-        <label className={labelClasse} htmlFor="janela-inicio">Janela de envio</label>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            id="janela-inicio"
-            type="time"
-            className={campoClasse}
-            value={form.janela_envio_inicio}
-            onChange={(e) => setForm({ ...form, janela_envio_inicio: e.target.value })}
-          />
-          <input
-            type="time"
-            aria-label="Fim da janela de envio"
-            className={campoClasse}
-            value={form.janela_envio_fim}
-            onChange={(e) => setForm({ ...form, janela_envio_fim: e.target.value })}
-          />
-        </div>
-        <p className="mt-1 text-[11px] text-[var(--text-muted)]">
-          Mensagens fora da janela são reagendadas para o próximo início.
-        </p>
-      </div>
-
-      <div>
-        <label className={labelClasse} htmlFor="limite-dia">
-          Limite de mensagens por lead/dia: {form.limite_mensagens_por_dia}
-        </label>
-        <input
-          id="limite-dia"
-          type="range"
-          min={1}
-          max={20}
-          value={form.limite_mensagens_por_dia}
-          onChange={(e) => setForm({ ...form, limite_mensagens_por_dia: Number(e.target.value) })}
-          className="w-full accent-[var(--accent)]"
-        />
-        <p className="text-[11px] text-[var(--text-muted)]">
-          Limite anti-bloqueio por número.
-        </p>
-      </div>
-
-      <button
-        onClick={salvar}
-        disabled={salvando}
-        className="w-full rounded-lg bg-[var(--accent)] py-2 text-xs font-semibold text-white disabled:opacity-50 hover:bg-[var(--accent-hover)]"
-      >
-        {salvando ? "Salvando..." : ok ? "Salvo!" : "Salvar configurações"}
-      </button>
-    </div>
   );
 }
 

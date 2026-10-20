@@ -1,6 +1,8 @@
 # StayCloud + Evolution API — Integração WhatsApp → CRM
 
-> Salvado para referência futura. Sem implementação por enquanto.
+> **Desativado:** as telas e endpoints de WhatsApp estão indisponíveis, os webhooks
+> são rejeitados e os fluxos não enviam mensagens. Este documento descreve uma
+> integração antiga e não deve ser usado para configurar o sistema atual.
 
 Parte 1 — StayCloud: hospedar o WhatsApp (infraestrutura)
 

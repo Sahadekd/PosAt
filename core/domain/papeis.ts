@@ -12,10 +12,8 @@ export type Modulo =
   | "tarefas"
   | "fluxos"
   | "kanban"
-  | "conversas"
   | "handoffs"
   | "corretores"
-  | "whatsapp"
   | "acessos"
   | "portal"
   | "minha-conta";
@@ -45,10 +43,8 @@ export const MODULOS: Modulo[] = [
   "tarefas",
   "fluxos",
   "kanban",
-  "conversas",
   "handoffs",
   "corretores",
-  "whatsapp",
   "acessos",
   "portal",
   "minha-conta",
@@ -60,11 +56,9 @@ export const MODULO_LABEL: Record<Modulo, string> = {
   oportunidades: "Oportunidades",
   tarefas: "Tarefas",
   fluxos: "Fluxos",
-  kanban: "Kanban",
-  conversas: "Conversas",
+  kanban: "Timeline",
   handoffs: "Handoffs",
   corretores: "Corretores",
-  whatsapp: "WhatsApp",
   acessos: "Gestão de acessos",
   portal: "Portal do cliente",
   "minha-conta": "Minha conta",
@@ -86,10 +80,8 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
     tarefas: TODAS,
     fluxos: TODAS,
     kanban: TODAS,
-    conversas: TODAS,
     handoffs: TODAS,
     corretores: TODAS,
-    whatsapp: TODAS,
     acessos: TODAS,
     portal: TODAS,
     "minha-conta": TODAS,
@@ -101,10 +93,8 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
     tarefas: ["ver", "criar", "editar"],
     fluxos: ["ver", "criar", "editar", "aprovar"],
     kanban: ["ver", "editar"],
-    conversas: ["ver"],
     handoffs: ["ver", "editar", "aprovar"],
     corretores: ["ver"],
-    whatsapp: ["ver"],
     acessos: ["ver", "gerenciar"],
     portal: ["ver"],
     "minha-conta": ["ver"],
@@ -116,10 +106,8 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
     tarefas: ["ver", "criar", "editar"],
     fluxos: ["ver"],
     kanban: ["ver", "editar"],
-    conversas: ["ver"],
     handoffs: ["ver", "editar"],
     corretores: ["ver"],
-    whatsapp: ["ver"],
     "minha-conta": ["ver"],
   },
   corretor: {
@@ -128,7 +116,6 @@ const PERMISSOES: Record<Papel, Partial<Record<Modulo, readonly ModuloAcao[]>>> 
     oportunidades: ["ver", "criar", "editar"],
     tarefas: ["ver", "criar", "editar"],
     fluxos: ["ver"],
-    conversas: ["ver"],
     handoffs: ["ver", "criar"],
     "minha-conta": ["ver"],
   },
@@ -176,12 +163,10 @@ export const ROTAS_SISTEMA: readonly RotaDoSistema[] = [
   { rota: "/clientes", label: "Clientes", grupo: "principal", modulo: "clientes" },
   { rota: "/oportunidades", label: "Oportunidades", grupo: "principal", modulo: "oportunidades" },
   { rota: "/tarefas", label: "Tarefas", grupo: "principal", modulo: "tarefas" },
-  { rota: "/mensagens", label: "Conversas", grupo: "principal", modulo: "conversas" },
   { rota: "/fluxos", label: "Fluxos", grupo: "operacao", modulo: "fluxos" },
-  { rota: "/kanban", label: "Kanban", grupo: "operacao", modulo: "kanban" },
+  { rota: "/kanban", label: "Timeline", grupo: "operacao", modulo: "kanban" },
   { rota: "/handoffs", label: "Handoffs", grupo: "operacao", modulo: "handoffs" },
   { rota: "/vendedores", label: "Corretores", grupo: "gestao", modulo: "corretores" },
-  { rota: "/gestor-whatsapp", label: "WhatsApp", grupo: "gestao", modulo: "whatsapp" },
   { rota: "/acessos", label: "Acessos e permissões", grupo: "conta", modulo: "acessos" },
   { rota: "/minha-conta", label: "Meu perfil", grupo: "conta", modulo: "minha-conta" },
   { rota: "/portal", label: "Portal do cliente", grupo: "portal", modulo: "portal" },

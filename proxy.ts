@@ -31,6 +31,13 @@ function rotaPermitida(papel: Papel, pathname: string): boolean {
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === "/api/whatsapp" || pathname.startsWith("/api/whatsapp/")) {
+    return NextResponse.json(
+      { erro: "A funcionalidade de WhatsApp está desativada." },
+      { status: 410 }
+    );
+  }
+
   if (ehPublica(pathname)) {
     return NextResponse.next();
   }

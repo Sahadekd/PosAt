@@ -12,9 +12,7 @@ import {
   Menu,
   X,
   Target,
-  MessageSquare,
   Store,
-  Smartphone,
   ChevronsLeft,
   ChevronsRight,
   GitBranch,
@@ -23,6 +21,7 @@ import {
   ShieldCheck,
   UserCircle2,
   LogOut,
+  type LucideIcon,
 } from "lucide-react";
 import {
   PAPEL_LABEL,
@@ -31,36 +30,35 @@ import {
   type Papel,
 } from "@/core/domain/papeis";
 
-type NavItem = { label: string; href: string; icon: typeof Users; modulo: Modulo };
+type NavItem = { label: string; href: string; icon: LucideIcon; modulo: Modulo };
 
-const GRUPOS: { titulo: string; itens: NavItem[] }[] = [
+const GRUPOS: { id: string; itens: NavItem[]; sessao?: boolean }[] = [
   {
-    titulo: "Principal",
+    id: "principal",
     itens: [
       { label: "Visão geral", href: "/", icon: LayoutDashboard, modulo: "dashboard" },
       { label: "Clientes", href: "/clientes", icon: Users, modulo: "clientes" },
-      { label: "Oportunidades", href: "/oportunidades", icon: Target, modulo: "oportunidades" },
-      { label: "Tarefas", href: "/tarefas", icon: CheckSquare, modulo: "tarefas" },
-      { label: "Conversas", href: "/mensagens", icon: MessageSquare, modulo: "conversas" },
+      { label: "Corretores", href: "/vendedores", icon: Store, modulo: "corretores" },
     ],
   },
   {
-    titulo: "Operação",
+    id: "relacionamento",
     itens: [
-    { label: "Fluxos", href: "/fluxos", icon: GitBranch, modulo: "fluxos" },
-      { label: "Timeline", href: "/kanban", icon: GitBranch, modulo: "kanban" },
+      { label: "Oportunidades", href: "/oportunidades", icon: Target, modulo: "oportunidades" },
+      { label: "Tarefas", href: "/tarefas", icon: CheckSquare, modulo: "tarefas" },
       { label: "Handoffs", href: "/handoffs", icon: ArrowRightLeft, modulo: "handoffs" },
     ],
   },
   {
-    titulo: "Gestão",
+    id: "operacao",
     itens: [
-      { label: "Corretores", href: "/vendedores", icon: Store, modulo: "corretores" },
-      { label: "WhatsApp", href: "/gestor-whatsapp", icon: Smartphone, modulo: "whatsapp" },
+      { label: "Timeline", href: "/kanban", icon: GitBranch, modulo: "kanban" },
+      { label: "Fluxos", href: "/fluxos", icon: GitBranch, modulo: "fluxos" },
     ],
   },
   {
-    titulo: "Conta",
+    id: "conta",
+    sessao: true,
     itens: [{ label: "Meu perfil", href: "/minha-conta", icon: UserCircle2, modulo: "minha-conta" }],
   },
 ];
@@ -84,10 +82,8 @@ const ROTA_TITULO: { match: RegExp; titulo: string; pai?: string }[] = [
   { match: /^\/fluxos$/, titulo: "Fluxo de Leads" },
   { match: /^\/kanban$/, titulo: "Timeline" },
   { match: /^\/handoffs$/, titulo: "Handoffs" },
-  { match: /^\/mensagens$/, titulo: "Conversas" },
-  { match: /^\/gestor-whatsapp$/, titulo: "WhatsApp" },
   { match: /^\/vendedores$/, titulo: "Corretores" },
-  { match: /^\/minha-conta$/, titulo: "Meu perfil", pai: "Conta" },
+  { match: /^\/minha-conta$/, titulo: "Meu perfil" },
   { match: /^\/acessos$/, titulo: "Acessos e permissões", pai: "Conta" },
 ];
 
@@ -162,7 +158,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { titulo, pai } = tituloDaRota(pathname);
 
   function podeVer(item: NavItem): boolean {
-    if (!usuario) return false;
+    if (!usuario) return true;
     if (usuario.rotas && usuario.rotas.length > 0) {
       return usuario.rotas.includes(item.href);
     }
@@ -172,7 +168,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const gruposVisiveis = GRUPOS.map((grupo) => ({
     ...grupo,
     itens: grupo.itens.filter(podeVer),
-  })).filter((grupo) => grupo.itens.length > 0);
+  })).filter((grupo) => grupo.itens.length > 0 || (grupo.sessao && usuario));
 
   async function sair() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -221,14 +217,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
         </button>
 
-        <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4 scroll-thin">
-          {gruposVisiveis.map((grupo) => (
-            <div key={grupo.titulo}>
-              {!colapsada && (
-                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                  {grupo.titulo}
-                </p>
-              )}
+        <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-4 scroll-thin">
+          {gruposVisiveis.map((grupo, index) => (
+            <div
+              key={grupo.id}
+              className={index > 0 ? "border-t border-[var(--border)] pt-3" : ""}
+            >
               <div className="space-y-0.5">
                 {grupo.itens.map((item) => {
                   const Icon = item.icon;
@@ -254,28 +248,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   );
                 })}
               </div>
+              {grupo.sessao && usuario && (
+                <button
+                  onClick={sair}
+                  data-tooltip={colapsada ? "Sair" : undefined}
+                  className={`mt-0.5 flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--inset)] hover:text-[var(--danger)] ${
+                    colapsada ? "justify-center px-0 py-2.5" : "py-2"
+                  }`}
+                >
+                  <LogOut className="h-[18px] w-[18px] shrink-0" />
+                  {!colapsada && <span>Sair</span>}
+                </button>
+              )}
             </div>
           ))}
-
-          {usuario && (
-            <div className="pt-5">
-              {!colapsada && (
-                <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                  Sessão
-                </p>
-              )}
-              <button
-                onClick={sair}
-                data-tooltip={colapsada ? "Sair" : undefined}
-                className={`flex w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--inset)] hover:text-[var(--danger)] ${
-                  colapsada ? "justify-center px-0 py-2.5" : "py-2"
-                }`}
-              >
-                <LogOut className="h-[18px] w-[18px] shrink-0" />
-                {!colapsada && <span>Sair</span>}
-              </button>
-            </div>
-          )}
         </nav>
       </aside>
 
@@ -305,12 +291,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <nav className="flex-1 space-y-5 overflow-y-auto px-3 py-4">
-              {gruposVisiveis.map((grupo) => (
-                <div key={grupo.titulo}>
-                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                    {grupo.titulo}
-                  </p>
+            <nav className="flex-1 space-y-3 overflow-y-auto px-3 py-4">
+              {gruposVisiveis.map((grupo, index) => (
+                <div
+                  key={grupo.id}
+                  className={index > 0 ? "border-t border-[var(--border)] pt-3" : ""}
+                >
                   <div className="space-y-0.5">
                     {grupo.itens.map((item) => {
                       const Icon = item.icon;
@@ -331,22 +317,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       );
                     })}
                   </div>
+                  {grupo.sessao && usuario && (
+                    <button
+                      onClick={sair}
+                      className="mt-0.5 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--inset)] hover:text-[var(--danger)]"
+                    >
+                      <LogOut className="h-[18px] w-[18px]" />
+                      Sair
+                    </button>
+                  )}
                 </div>
               ))}
-              {usuario && (
-                <div>
-                  <p className="mb-1.5 px-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--text-muted)]">
-                    Sessão
-                  </p>
-                  <button
-                    onClick={sair}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-[var(--text-secondary)] hover:bg-[var(--inset)] hover:text-[var(--danger)]"
-                  >
-                    <LogOut className="h-[18px] w-[18px]" />
-                    Sair
-                  </button>
-                </div>
-              )}
             </nav>
           </div>
         </div>

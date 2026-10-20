@@ -12,7 +12,6 @@ import {
   ListChecks,
   ShieldAlert,
   ArrowRightLeft,
-  MessageSquare,
   Sparkles,
   Building2,
 } from "lucide-react";
@@ -46,14 +45,6 @@ interface DashboardData {
     criado_em?: string;
   }[];
   composicaoStatus?: Record<string, number>;
-  whatsapp?: {
-    totalConversas: number;
-    espelhadas: number;
-    semMatch: number;
-    privadas: number;
-    semResposta: number;
-    volumeHoje?: { data: string; total: number; recebidas: number; enviadas: number } | null;
-  };
 }
 
 const formatoMoeda = (v: number) =>
@@ -181,7 +172,6 @@ export default function HomePage() {
     { icon: Target, label: "Oportunidades", desc: "Recompra, upgrade e investimento", href: "/oportunidades" },
     { icon: CheckSquare, label: "Fila de tarefas", desc: "Onboarding, follow-up e pendências", href: "/tarefas" },
     { icon: ArrowRightLeft, label: "Handoffs", desc: "Passagens de bastão com checklist", href: "/handoffs" },
-    { icon: MessageSquare, label: "Conversas WhatsApp", desc: "Espelhamento automático no CRM", href: "/mensagens" },
   ];
 
   return (
@@ -196,13 +186,6 @@ export default function HomePage() {
             O que está acontecendo e o que precisa da sua atenção hoje.
           </p>
         </div>
-        <Link
-          href="/mensagens"
-          className="flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--inset)] px-3 py-2 text-xs font-semibold text-[var(--text-primary)] transition hover:border-[var(--border-strong)]"
-        >
-          <MessageSquare className="h-3.5 w-3.5 text-[var(--accent)]" />
-          Abrir conversas
-        </Link>
       </div>
 
       {/* ── KPIs principais ── */}
@@ -302,8 +285,8 @@ export default function HomePage() {
         )}
       </section>
 
-      {/* ── Métricas secundárias: pipeline + WhatsApp ── */}
-      <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+      {/* ── Métricas secundárias: pipeline ── */}
+      <section>
         {/* Pipeline */}
         <div className="card p-5">
           <div className="flex items-center justify-between">
@@ -326,49 +309,6 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-
-        {/* WhatsApp */}
-        {stats.whatsapp && (
-          <div className="card p-5">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[var(--success-light)] text-[var(--success)]">
-                  <MessageSquare className="h-[18px] w-[18px]" />
-                </span>
-                <div>
-                  <p className="text-sm font-semibold text-[var(--text-primary)]">WhatsApp espelhado no CRM</p>
-                  <p className="text-xs text-[var(--text-secondary)]">
-                    {stats.whatsapp.espelhadas} de {stats.whatsapp.totalConversas} conversas espelhadas
-                  </p>
-                </div>
-              </div>
-              <Link href="/mensagens" className="text-xs font-semibold text-[var(--accent)] hover:underline">
-                Abrir painel
-              </Link>
-            </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs">
-              <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--success)]" />
-                {stats.whatsapp.espelhadas} espelhadas
-              </span>
-              <span
-                className="flex items-center gap-1.5 text-[var(--text-secondary)]"
-                style={{ color: stats.whatsapp.semResposta > 0 ? "var(--danger)" : "var(--text-secondary)" }}
-              >
-                <span className="h-1.5 w-1.5 rounded-full" style={{ background: "var(--danger)" }} />
-                {stats.whatsapp.semResposta} sem resposta 8h+
-              </span>
-              <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--warning)]" />
-                {stats.whatsapp.semMatch} sem match
-              </span>
-              <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)]" />
-                {stats.whatsapp.volumeHoje?.total ?? 0} mensagens hoje
-              </span>
-            </div>
-          </div>
-        )}
       </section>
 
       {/* ── Indicadores de base: completude + composição ── */}
@@ -501,7 +441,7 @@ export default function HomePage() {
         <h3 className="mb-3 text-sm font-bold uppercase tracking-wide text-[var(--text-secondary)]">
           Atalhos
         </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {quickLinks.map((q) => {
             const Icon = q.icon;
             return (

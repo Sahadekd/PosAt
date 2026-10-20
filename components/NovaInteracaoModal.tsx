@@ -23,8 +23,8 @@ export default function NovaInteracaoModal({
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  const [tipo, setTipo] = useState<TipoInteracao>("whatsapp");
-  const [canal, setCanal] = useState("WhatsApp Comercial");
+  const [tipo, setTipo] = useState<TipoInteracao>("ligacao");
+  const [canal, setCanal] = useState("Ligação telefônica");
   const [descricao, setDescricao] = useState("");
   const [resultado, setResultado] = useState("");
   const [criadoPor, setCriadoPor] = useState("Consultor Atual");
@@ -119,7 +119,6 @@ export default function NovaInteracaoModal({
                 onChange={(e) => setTipo(e.target.value as TipoInteracao)}
                 className={selectClass}
               >
-                <option value="whatsapp">WhatsApp</option>
                 <option value="ligacao">Ligação Telefônica</option>
                 <option value="email">E-mail</option>
                 <option value="visita">Visita / Reunião</option>
@@ -137,7 +136,7 @@ export default function NovaInteracaoModal({
                 type="text"
                 value={canal}
                 onChange={(e) => setCanal(e.target.value)}
-                placeholder="Ex: WhatsApp Oficial, Plantão, etc."
+                placeholder="Ex: telefone, e-mail, reunião"
                 className={inputClass}
               />
             </div>

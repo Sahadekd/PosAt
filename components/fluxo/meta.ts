@@ -66,7 +66,7 @@ export const META_NOS: Record<TipoNo, MetaNo> = {
   notificacao: {
     tipo: "notificacao",
     label: "Notificação",
-    descricao: "Alertar atendente ou gestor (in-app / WhatsApp interno).",
+    descricao: "Alertar atendente ou gestor dentro do CRM.",
     icon: Bell,
     cor: "#FB7185",
     corLight: "rgba(251, 113, 133, 0.14)",
@@ -123,7 +123,6 @@ export const META_ESTADOS: Record<EstadoNoExecucao, MetaEstado> = {
 
 export const TIPOS_NO_ARRAY: TipoNo[] = [
   "gatilho",
-  "mensagem_whatsapp",
   "atraso",
   "condicao",
   "acao_interna",

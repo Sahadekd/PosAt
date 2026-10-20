@@ -927,7 +927,6 @@ function PainelNo({
                   }
                 >
                   <option value="in_app">In-app</option>
-                  <option value="whatsapp_interno">WhatsApp equipe</option>
                 </select>
               </div>
               <div>

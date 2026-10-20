@@ -5,19 +5,17 @@ import {
   listarTarefasUseCase,
   listarOportunidadesUseCase,
   listarVendedoresUseCase,
-  obterMetricasWhatsAppUseCase,
 } from "@/core/container";
 
 export async function GET() {
   try {
-    const [stats, clientes, tarefas, oportunidades, vendedores, whatsapp] =
+    const [stats, clientes, tarefas, oportunidades, vendedores] =
       await Promise.all([
         obterStatsUseCase.execute(),
         listarClientesUseCase.execute(),
         listarTarefasUseCase.execute(),
         listarOportunidadesUseCase.execute(),
         listarVendedoresUseCase.execute(),
-        obterMetricasWhatsAppUseCase.execute(),
       ]);
 
     const agora = Date.now();
@@ -94,14 +92,6 @@ export async function GET() {
           telefone: v.telefone,
           criado_em: v.criado_em,
         })),
-      whatsapp: {
-        totalConversas: whatsapp.totalConversas,
-        espelhadas: whatsapp.espelhadas,
-        semMatch: whatsapp.semMatch,
-        privadas: whatsapp.privadas,
-        semResposta: whatsapp.semResposta.length,
-        volumeHoje: whatsapp.volumePorDia[whatsapp.volumePorDia.length - 1] || null,
-      },
     });
   } catch (error) {
     return NextResponse.json(

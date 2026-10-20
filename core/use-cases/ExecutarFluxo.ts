@@ -1,7 +1,7 @@
 // ============================================================
 // Motor de execução do Fluxo de Leads
 // Responsável por: avançar nós, agendar atrasos, ramificar
-// condições, disparar WhatsApp, pausar por resposta e retry.
+// condições, pausar por resposta e retry.
 // ============================================================
 
 import {
@@ -19,7 +19,6 @@ import {
   ArestaFluxo,
   EstadoNoExecucao,
 } from "../domain/entities/fluxo";
-import { enviarMensagemTextoWaha } from "@/lib/waha";
 import { supabaseAdmin } from "@/lib/supabase-admin";
 
 const MAX_TENTATIVAS = 3;
@@ -40,16 +39,6 @@ function resolverVariaveis(template: string, contexto: ContextoLead): string {
     if (valor === undefined || valor === null) return "";
     return String(valor);
   });
-}
-
-function dentroDaJanela(inicio: string, fim: string): boolean {
-  const agora = new Date();
-  const minutos = agora.getHours() * 60 + agora.getMinutes();
-  const [hIni, mIni] = inicio.split(":").map(Number);
-  const [hFim, mFim] = fim.split(":").map(Number);
-  const ini = hIni * 60 + (mIni || 0);
-  const fimMin = hFim * 60 + (mFim || 0);
-  return minutos >= ini && minutos <= fimMin;
 }
 
 function calcularProximoAgendamento(
@@ -161,32 +150,6 @@ export class ExecutarFluxoUseCase {
       execucao.no_atual_estado === "agendado" ||
       execucao.no_atual_estado === "falhou"
     ) {
-      // Verifica janela de envio para mensagens
-      if (noAtual.data.tipo === "mensagem_whatsapp" && !noAtual.data.manual) {
-        if (!dentroDaJanela(fluxo.janela_envio_inicio, fluxo.janela_envio_fim)) {
-          // Reagenda para o próximo início de janela
-          const [h] = fluxo.janela_envio_inicio.split(":").map(Number);
-          const amanha = new Date();
-          amanha.setDate(amanha.getDate() + 1);
-          amanha.setHours(h, 0, 0, 0);
-
-          // Se ainda é hoje antes da janela, agenda para hoje
-          const hojeInicio = new Date();
-          hojeInicio.setHours(h, 0, 0, 0);
-          const alvo = hojeInicio > new Date() ? hojeInicio : amanha;
-
-          await this.execucaoRepo.update(execucao.id, {
-            proxima_execucao_em: alvo.toISOString(),
-            no_atual_estado: "agendado",
-          });
-          await this.registrarLog(execucao, "aguardando_janela", {
-            noId: noAtual.id,
-            proximoAgendamento: alvo.toISOString(),
-          });
-          return;
-        }
-      }
-
       await this.processarNo(execucao, fluxo, noAtual, contexto);
     }
   }
@@ -303,47 +266,7 @@ export class ExecutarFluxoUseCase {
         }
 
         case "mensagem_whatsapp": {
-          const conteudoFinal = resolverVariaveis(no.data.conteudo, contexto);
-          const telefone = contexto.telefone;
-
-          if (no.data.manual) {
-            // Disparo manual: fica aguardando ação do usuário
-            await this.execucaoRepo.atualizarNo(noExec.id, {
-              estado: "agendado",
-              conteudo_enviado: conteudoFinal,
-              agendado_para: agora,
-            });
-            await this.execucaoRepo.update(execucao.id, {
-              no_atual_estado: "agendado",
-            });
-            await this.registrarLog(execucao, "aguardando_disparo_manual", {
-              noId: no.id,
-              conteudo: conteudoFinal,
-            });
-            break;
-          }
-
-          if (!telefone) {
-            await this.falharNo(noExec, execucao, "Lead sem telefone cadastrado.");
-            break;
-          }
-
-          // Respeita limite de mensagens por dia
-          const enviosHoje = await this.contarMensagensHoje(execucao.id);
-          if (enviosHoje >= fluxo.limite_mensagens_por_dia) {
-            await this.execucaoRepo.atualizarNo(noExec.id, {
-              estado: "agendado",
-              agendado_para: calcularProximoAgendamento(1, "dias"),
-            });
-            await this.execucaoRepo.update(execucao.id, {
-              no_atual_estado: "agendado",
-              proxima_execucao_em: calcularProximoAgendamento(1, "dias"),
-            });
-            await this.registrarLog(execucao, "limite_dia_atingido", { noId: no.id });
-            break;
-          }
-
-          await this.dispararMensagem(execucao, fluxo, no, noExec, conteudoFinal, telefone, contexto);
+          await this.falharNo(noExec, execucao, "Envios de WhatsApp estão desativados.");
           break;
         }
 
@@ -406,62 +329,6 @@ export class ExecutarFluxoUseCase {
         execucao,
         erro instanceof Error ? erro.message : "Erro desconhecido"
       );
-    }
-  }
-
-  private async dispararMensagem(
-    execucao: FluxoExecucao,
-    fluxo: Fluxo,
-    no: NoFluxo,
-    noExec: FluxoNoExecucao,
-    conteudo: string,
-    telefone: string,
-    contexto: ContextoLead
-  ): Promise<void> {
-    const sessao = await this.obterSessaoDoResponsavel(
-      execucao.cliente?.responsavel_id ?? fluxo.responsavel_id
-    );
-
-    if (!sessao) {
-      await this.retryOuFalhar(noExec, execucao, "Nenhuma sessão WhatsApp disponível para envio.");
-      return;
-    }
-
-    try {
-      await enviarMensagemTextoWaha({ sessao, numero: telefone, texto: conteudo });
-
-      await this.execucaoRepo.atualizarNo(noExec.id, {
-        estado: "concluido",
-        concluido_em: new Date().toISOString(),
-        conteudo_enviado: conteudo,
-        status_entrega: "enviada",
-        tentativas: noExec.tentativas + 1,
-      });
-
-      await this.registrarLog(execucao, "mensagem_enviada", {
-        noId: no.id,
-        telefone,
-        conteudo,
-      });
-
-      // Registra interação no histórico do cliente
-      try {
-        await this.interacaoRepo.create({
-          cliente_id: execucao.cliente_id,
-          tipo: "whatsapp",
-          canal: "fluxo_automatico",
-          descricao: `Mensagem automática (fluxo: ${fluxo.nome}): ${conteudo.slice(0, 200)}`,
-          resultado: "enviada",
-          dados_extra: { fluxo_id: fluxo.id, no_id: no.id, execucao_id: execucao.id },
-        });
-      } catch {
-        // interação é best-effort
-      }
-
-      await this.avancar(execucao, fluxo, no.id, contexto);
-    } catch (erro) {
-      const msg = erro instanceof Error ? erro.message : "Falha no envio";
-      await this.retryOuFalhar(noExec, execucao, msg);
     }
   }
 
@@ -653,47 +520,6 @@ export class ExecutarFluxoUseCase {
       noId: noExec.no_id,
       erro,
     });
-  }
-
-  private async contarMensagensHoje(execucaoId: string): Promise<number> {
-    if (!supabaseAdmin) return 0;
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-
-    const { count } = await supabaseAdmin
-      .from("fluxo_no_execucoes")
-      .select("id", { count: "exact", head: true })
-      .eq("execucao_id", execucaoId)
-      .eq("tipo", "mensagem_whatsapp")
-      .gte("criado_em", hoje.toISOString());
-
-    return count ?? 0;
-  }
-
-  private async obterSessaoDoResponsavel(
-    responsavelId: string | null | undefined
-  ): Promise<string | null> {
-    if (!supabaseAdmin || !responsavelId) return null;
-
-    const { data } = await supabaseAdmin
-      .from("whatsapp_conexoes")
-      .select("sessao_id, status")
-      .eq("corretor", responsavelId)
-      .eq("status", "conectado")
-      .limit(1)
-      .maybeSingle();
-
-    if (data?.sessao_id) return data.sessao_id;
-
-    // Fallback: primeira sessão conectada
-    const { data: primeira } = await supabaseAdmin
-      .from("whatsapp_conexoes")
-      .select("sessao_id")
-      .eq("status", "conectado")
-      .limit(1)
-      .maybeSingle();
-
-    return primeira?.sessao_id ?? null;
   }
 
   private async registrarLog(
